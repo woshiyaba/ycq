@@ -17,7 +17,7 @@
 
     <properties>
         <!--Greenwich.M1 版本会报错,issue:https://github.com/spring-cloud/spring-cloud-gateway/issues/577-->
-        <spring-cloud.version>Greenwich.RC1</spring-cloud.version>
+        <spring-cloud.version>Greenwich.RELEASE</spring-cloud.version>
     </properties>
 
     <dependencies>
