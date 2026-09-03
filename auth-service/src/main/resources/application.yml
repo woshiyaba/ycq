@@ -15,7 +15,7 @@ spring:
 wx:
   miniapp:
     appid: wx61195d1c5ca45a67
-    secret: 4697a9da782ee8b9d84f7177b9f6601a
+    secret: b71452eef20db03598c9143ae2ca8bda
     msgDataFormat: JSON
 
 jwt:

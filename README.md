@@ -123,6 +123,9 @@ mvn clean package -Dmaven.test.skip=true
 ```
 $ docker compose build
 $ docker compose up -d
+
+ mvn -pl auth-service -am package -DskipTests                                                                                                                                      
+ docker-compose up -d --no-deps --build --force-recreate auth-service
 ```
 
 部署完成后稍等片刻（网关完全启动比较耗时），打开你的小程序开发工具，点击上方的`编译`就可以看到首页了。
