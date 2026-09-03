@@ -121,8 +121,8 @@ mvn clean package -Dmaven.test.skip=true
 打开docker-compose.yml看一下，确保和你本机的端口没有冲突。然后就可以docker部署啦
 
 ```
-$ docker-compose build
-$ docker-compose up
+$ docker compose build
+$ docker compose up -d
 ```
 
 部署完成后稍等片刻（网关完全启动比较耗时），打开你的小程序开发工具，点击上方的`编译`就可以看到首页了。

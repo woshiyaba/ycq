@@ -13,12 +13,7 @@ import java.util.List;
 @Mapper
 public interface SearchMapper {
 
-    /**
-     * 热度算法
-     * Score = (1*click + 10 * want + 500) /e^ (day/10)
-     * = (1*click + 10 * want + 500) / e^((T(now) - T *  10^-7 )
-     */
-    String popular_score = "(1 * browse_count + 10 * want_count + 500) / exp((now() - last_edit) * POW(10, -7))";
+    String popular_score = GoodsMapper.popular_score;
 
 
     @Select("select keyword\n" +
