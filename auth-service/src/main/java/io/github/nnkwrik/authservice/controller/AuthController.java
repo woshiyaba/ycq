@@ -53,7 +53,7 @@ public class AuthController {
             sessionInfo = wxUserService.getSessionInfo(authDTO.getCode());
         } catch (WxErrorException e) {
             String message = "jscode失效，登录失败";
-            log.info(message);
+            log.error(message, e);
             return Response.fail(Response.WRONG_JS_CODE, message);
         }
 
