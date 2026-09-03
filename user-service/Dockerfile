@@ -1,5 +1,5 @@
-FROM openjdk:8-jre
-MAINTAINER nnkwrik nnkwrik@gmail.com
+FROM eclipse-temurin:8-jre
+LABEL maintainer="nnkwrik nnkwrik@gmail.com"
 
 ENV SPRING_PROFILE_ACTIVE=docker
 

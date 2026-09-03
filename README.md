@@ -105,6 +105,8 @@ wx:
 
 后端用docker-compose快速部署，确保你安装了docker和docker-compose。（参考：[Ubuntu安装Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/)，[安装docker-compose](https://docs.docker.com/compose/install/)）。
 
+各后端服务使用 `eclipse-temurin:8-jre` 作为 Java 8 运行时。Dockerfile 不绑定镜像加速地址；如需加速，请在 Docker 服务端统一配置可用的镜像源。
+
 ```
 $ git clone git@github.com:nnkwrik/weapp-fangxianyu.git
 $ cd /weapp-fangxianyu
