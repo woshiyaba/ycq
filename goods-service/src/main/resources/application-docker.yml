@@ -4,7 +4,7 @@ eureka:
       defaultZone: http://fangxianyu-eureka:8080/eureka/
 spring:
   datasource:
-    url: jdbc:mysql://fangxianyu-mysql:3306/goods_service
+    url: jdbc:mysql://fangxianyu-mysql:3306/goods_service?sslMode=DISABLED
     username: root
     password: 1234
     driver-class-name: com.mysql.cj.jdbc.Driver

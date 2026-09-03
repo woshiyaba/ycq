@@ -1,4 +1,4 @@
-version: '3'
+version: '2.4'
 services:
 
   mysql:
@@ -14,6 +14,12 @@ services:
     #/dev/mysql/data为空(首次启动)时会执行/docker-entrypoint-initdb.d下的sql
 #    - ./dev/mysql/dump/1_schema.sql:/docker-entrypoint-initdb.d/1_schema.sql  #只导入schema
     - ./dev/mysql/dump:/docker-entrypoint-initdb.d  #schema+所有测试数据
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$${MYSQL_ROOT_PASSWORD} mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
     restart: always
 
   rabbitmq:
@@ -42,9 +48,12 @@ services:
     container_name: fangxianyu-user-service
     restart: always
     depends_on:
-    - mysql
-    - rabbitmq
-    - eureka
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+      eureka:
+        condition: service_started
   auth-service:
     build: ./auth-service
     container_name: fangxianyu-auth-service
@@ -59,19 +68,27 @@ services:
     container_name: fangxianyu-goods-service
     restart: always
     depends_on:
-    - mysql
-    - eureka
-    - user-service
+      mysql:
+        condition: service_healthy
+      eureka:
+        condition: service_started
+      user-service:
+        condition: service_started
   im-service:
     build: ./im-service
     container_name: fangxianyu-im-service
     restart: always
     depends_on:
-    - mysql
-    - redis
-    - eureka
-    - user-service
-    - goods-service
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      eureka:
+        condition: service_started
+      user-service:
+        condition: service_started
+      goods-service:
+        condition: service_started
   gateway:
     build: ./gateway
     container_name: fangxianyu-gateway
