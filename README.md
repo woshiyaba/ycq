@@ -107,6 +107,28 @@ wx:
 
 各后端服务使用 `eclipse-temurin:8-jre` 作为 Java 8 运行时。Dockerfile 不绑定镜像加速地址；如需加速，请在 Docker 服务端统一配置可用的镜像源。
 
+商品图片通过 `goods-service` 上传到腾讯云 COS。启动服务或 Docker Compose 前，需要在环境中提供以下变量，密钥不要写入仓库：
+
+| 环境变量 | 说明 |
+| --- | --- |
+| `TENCENT_COS_SECRET_ID` | 腾讯云访问密钥 ID |
+| `TENCENT_COS_SECRET_KEY` | 腾讯云访问密钥 Key |
+| `TENCENT_COS_BUCKET` | 包含 APPID 的完整存储桶名称 |
+| `TENCENT_COS_REGION` | 存储桶地域，例如 `ap-guangzhou` |
+
+Linux 下完整启动命令（将示例值替换为实际配置）：
+
+```bash
+export TENCENT_COS_SECRET_ID='你的 SecretId'
+export TENCENT_COS_SECRET_KEY='你的 SecretKey'
+export TENCENT_COS_BUCKET='你的存储桶名称-APPID'
+export TENCENT_COS_REGION='ap-guangzhou'
+
+mvn clean package -DskipTests && docker compose up -d --build
+```
+
+存储桶需允许公有读，服务端密钥至少需要目标存储桶 `cos:PutObject` 权限。上传接口为无需登录的 `POST /upload/image`，参数名为 `file`，仅接受不超过 5MB 的 JPEG/PNG 图片。
+
 ```
 $ git clone git@github.com:nnkwrik/weapp-fangxianyu.git
 $ cd /weapp-fangxianyu
@@ -125,7 +147,7 @@ $ docker compose build
 $ docker compose up -d
 
  mvn -pl auth-service -am package -DskipTests                                                                                                                                      
- docker-compose up -d --no-deps --build --force-recreate auth-service
+ docker compose up -d --no-deps --build --force-recreate auth-service
 ```
 
 部署完成后稍等片刻（网关完全启动比较耗时），打开你的小程序开发工具，点击上方的`编译`就可以看到首页了。
@@ -211,7 +233,7 @@ jwt:
 
 - 前端参考了[NideShop商城](https://github.com/tumobi/nideshop-mini-program)小程序，非常感谢
 
-- 图床用的是免费的[SMMS](https://sm.ms/)，一小时内能上传的图片数有上限，需要注意一下。
+- 商品图片通过项目内上传接口保存到腾讯云 COS。
 
 - 订单和支付没有完成，随缘开发。
   [NideShop商城](https://github.com/tumobi/nideshop-mini-program)里好像已经有支付和订单的页面，有兴趣做二次开发的话可以参考

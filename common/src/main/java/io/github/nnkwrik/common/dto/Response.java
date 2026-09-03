@@ -22,6 +22,8 @@ public class Response<T> {
     public static final int POST_INFO_INCOMPLETE = 4003;
     public static final int SELLER_AND_GOODS_IS_NOT_MATCH = 4004;
     public static final int GOODS_IN_NOT_EXIST = 4005;
+    public static final int UPLOAD_FILE_INVALID = 4006;
+    public static final int UPLOAD_FAILED = 4007;
 
     //user
     public static final int USER_IS_NOT_EXIST = 2001;

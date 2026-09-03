@@ -1,6 +1,10 @@
 spring:
   application:
     name: goods-service
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   jackson:
     default-property-inclusion: non_null  #如果值为null,构造json时不加入
     date-format: yyyy-MM-dd HH:mm    #指定Json中Date对象的传输格式.对于DTO还是使用以往的方式
@@ -20,3 +24,10 @@ logging:
     io.github.nnkwrik.goodsservice: debug
 jwt:
   pub-key-file-name: RSA.pub
+
+tencent:
+  cos:
+    secret-id: ${TENCENT_COS_SECRET_ID}
+    secret-key: ${TENCENT_COS_SECRET_KEY}
+    bucket: ${TENCENT_COS_BUCKET}
+    region: ${TENCENT_COS_REGION}

@@ -31,6 +31,7 @@ module.exports = {
   GoodsDelete: ApiRootUrl + 'post/delete', //删除自己发布的商品
   RegionList: ApiRootUrl + 'post/region', //获取区域列表
   PostCateList: ApiRootUrl + 'post/category', //发布商品时选择分类
+  ImageUpload: ApiRootUrl + 'upload/image', //上传商品图片
 
   //用户相关
   CollectList: ApiRootUrl + 'goodsUser/collect', //收藏列表

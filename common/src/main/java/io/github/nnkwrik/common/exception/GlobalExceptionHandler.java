@@ -2,6 +2,7 @@ package io.github.nnkwrik.common.exception;
 
 import io.github.nnkwrik.common.dto.Response;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -13,6 +14,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    @ResponseBody
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public Object handleMaxUploadSizeExceededException() {
+        return Response.fail(Response.UPLOAD_FILE_INVALID, "上传文件大小超过限制");
+    }
 
     @ResponseBody
     @ExceptionHandler(GlobalException.class)

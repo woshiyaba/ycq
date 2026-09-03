@@ -67,6 +67,11 @@ services:
     build: ./goods-service
     container_name: fangxianyu-goods-service
     restart: always
+    environment:
+    - TENCENT_COS_SECRET_ID
+    - TENCENT_COS_SECRET_KEY
+    - TENCENT_COS_BUCKET
+    - TENCENT_COS_REGION
     depends_on:
       mysql:
         condition: service_healthy

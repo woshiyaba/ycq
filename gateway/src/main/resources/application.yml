@@ -49,6 +49,10 @@ spring:
         uri: lb://GOODS-SERVICE
         predicates:
         - Path=/post/**
+      - id: upload
+        uri: lb://GOODS-SERVICE
+        predicates:
+        - Path=/upload/**
       - id: goodsUser
         uri: lb://GOODS-SERVICE
         predicates:

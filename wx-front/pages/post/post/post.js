@@ -46,7 +46,7 @@ Page({
           tmpImgList: that.data.tmpImgList.concat(tempFilePaths)
         })
         for (var i = 0; i < length; i++) {
-          that.data.imgList.push('false');
+          that.data.imgList.push(false);
           var index = that.data.imgList.length-1
           that.setData({
             imgList: that.data.imgList
@@ -56,7 +56,7 @@ Page({
             console.log("图片太大")
             that.compressImg(tempFilePaths[i], index)
           } else {
-            console.log("上传到图床")
+            console.log("上传图片")
             that.uploadFile(tempFilePaths[i], index)
           }
 
@@ -79,50 +79,56 @@ Page({
   uploadFile(url, i) {
     let that = this;
     wx.uploadFile({
-      url: 'https://sm.ms/api/upload',
+      url: api.ImageUpload,
       filePath: url,
-      name: 'smfile',
+      name: 'file',
       success(res) {
-        const data = JSON.parse(res.data);
+        let data
+        try {
+          data = JSON.parse(res.data)
+        } catch (e) {
+          console.log(e)
+          that.uploadFailed(i, '图片上传失败')
+          return
+        }
 
         console.log(data)
-        if (data.code == 'success') {
-          console.log("图片上传成功, " + data.data.url)
-          that.data.imgList[i] = data.data.url
+        if (res.statusCode == 200 && data.errno == 0 && data.data) {
+          console.log("图片上传成功, " + data.data)
+          that.data.imgList[i] = data.data
           that.setData({
             imgList: that.data.imgList
           })
-          // that.onLoad();
-
-        } else if (data.code == 'error' && data.msg == 'File is too large.') {
-          console.log("上传失败,图片太大")
-          that.compressImg(url, i)
+        } else {
+          that.uploadFailed(i, data.errmsg || '图片上传失败')
         }
+      },
+      fail(res) {
+        console.log(res)
+        that.uploadFailed(i, '图片上传失败')
       }
     })
-
-    //模拟上传
-    // setTimeout(function goback() {
-    //   console.log("图片上传成功, " + url)
-    //   that.data.imgList[i] = url
-    //   that.setData({
-    //     imgList: that.data.imgList
-    //   })
-    // }, 2000)
-
+  },
+  uploadFailed(i, msg) {
+    this.data.imgList[i] = null
+    this.setData({
+      imgList: this.data.imgList
+    })
+    util.showErrorToast(msg)
   },
   compressImg(url, i) {
     let that = this
     wx.compressImage({
       src: url, // 图片路径
       quality: 50, // 压缩质量
-      success() {
+      success(res) {
         console.log("压缩后重新上传")
-        that.uploadFile(url, i)
+        that.uploadFile(res.tempFilePath, i)
       },
       fail(res) {
         console.log(res)
         console.log("压缩失败 ")
+        that.uploadFailed(i, '图片压缩失败')
       }
     })
   },
@@ -143,7 +149,7 @@ Page({
     let urls = [];
     let imgList = this.data.imgList
     for (var index in imgList){
-      if (imgList[index]!='false'){
+      if (imgList[index]){
         urls.push(imgList[index])
       }
     }
@@ -212,8 +218,12 @@ Page({
 
     let imgList = this.data.imgList
     for (var index in imgList) {
-      if (imgList[index] == 'false') {
+      if (imgList[index] === false) {
         util.showErrorToast('图片上传中')
+        return;
+      }
+      if (!imgList[index]) {
+        util.showErrorToast('图片上传失败')
         return;
       }
     }
