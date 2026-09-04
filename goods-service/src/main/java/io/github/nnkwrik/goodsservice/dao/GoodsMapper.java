@@ -51,26 +51,7 @@ public interface GoodsMapper {
      * @param goodsId
      * @return
      */
-    @Select("select id,\n" +
-            "       seller_id,\n" +
-            "       `name`,\n" +
-            "       price,\n" +
-            "       market_price,\n" +
-            "       primary_pic_url,\n" +
-            "       `desc`,\n" +
-            "       want_count,\n" +
-            "       browse_count,\n" +
-            "       is_selling,\n" +
-            "       is_delete,\n" +
-            "       post_time,\n" +
-            "       last_edit,\n" +
-            "       postage,\n" +
-            "       region,\n" +
-            "       able_express,\n" +
-            "       able_meet,\n" +
-            "       able_self_take\n" +
-            "from goods\n" +
-            "where id = #{goodsId}")
+    @Select("select * from goods where id = #{goodsId}")
     Goods findDetailGoodsByGoodsId(@Param("goodsId") int goodsId);
 
     /**
@@ -124,10 +105,10 @@ public interface GoodsMapper {
     void addBrowseCount(@Param("goodsId") int id, @Param("add") int add);
 
 
-    @Select("select id, user_id, content, create_time\n" +
+    @Select("select id, user_id, if(is_delete, '该留言已删除', content) as content, create_time, is_delete\n" +
             "from goods_comment\n" +
             "where reply_comment_id = 0\n" +
-            "  and is_delete = false\n" +
+            "  and (is_delete = false or exists (select 1 from goods_comment replies where replies.reply_comment_id = goods_comment.id and replies.is_delete = false))\n" +
             "  and goods_id = #{goodsId}\n" +
             "order by create_time asc")
     List<GoodsComment> findBaseComment(@Param("goodsId") int goodsId);
@@ -188,11 +169,7 @@ public interface GoodsMapper {
      * @param sellerId
      * @return
      */
-    @Select("select COUNT(*)\n" +
-            "from goods\n" +
-            "where seller_id = #{seller_id}\n" +
-            "  and is_selling = false\n" +
-            "  and is_delete = false")
+    @Select("select count(*) from goods where seller_id = #{seller_id} and sold_time is not null")
     Integer getSellerHistory(@Param("seller_id") String sellerId);
 
     /**
@@ -204,8 +181,33 @@ public interface GoodsMapper {
     @Select("SELECT EXISTS(SELECT 1 FROM goods WHERE seller_id=#{seller_id} and id=#{goods_id})")
     Boolean validateSeller(@Param("goods_id") int goodsId, @Param("seller_id") String userId);
 
-    @Update("update goods set is_selling = false where id = #{goods_id}")
+    @Update("update goods set is_delete = true, is_selling = false, last_edit = now() where id = #{goods_id}")
     void deleteGoods(@Param("goods_id") int goodsId);
 
+    @Select("select * from goods_comment where id = #{id}")
+    GoodsComment findComment(int id);
+
+    @Update("update goods_comment set is_delete=true where id=#{id} and user_id=#{userId}")
+    int deleteComment(@Param("id") int id, @Param("userId") String userId);
+
+    @Select("select exists(select 1 from category where id=#{id})")
+    boolean categoryExists(int id);
+
+    @Select("select exists(select 1 from region where id=#{id})")
+    boolean regionExists(int id);
+
+    @Update("update goods set category_id=#{categoryId}, name=#{name}, price=#{price}, market_price=#{marketPrice}, "
+            + "postage=#{postage}, primary_pic_url=#{primaryPicUrl}, `desc`=#{desc}, region_id=#{regionId}, region=#{region}, "
+            + "able_express=#{ableExpress}, able_meet=#{ableMeet}, able_self_take=#{ableSelfTake}, last_edit=now() where id=#{id}")
+    void updateGoods(Goods goods);
+
+    @Delete("delete from goods_gallery where goods_id=#{goodsId}")
+    void deleteGallery(int goodsId);
+
+    @Update("update goods set is_selling=#{isSelling}, last_edit=now() where id=#{goodsId}")
+    void setSelling(@Param("goodsId") int goodsId, @Param("isSelling") boolean isSelling);
+
+    @Select("select * from goods where seller_id=#{userId} and is_delete=0 order by last_edit desc, id desc")
+    List<Goods> findManageGoods(String userId);
 
 }

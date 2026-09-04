@@ -24,12 +24,13 @@ public class ChatForm {
 
     /*与本次聊天相关的商品的信息*/
     private SimpleGoods goods;
+    private io.github.nnkwrik.common.dto.SimpleContent content;
 
     /*当前用户是否时u1*/
     private Boolean isU1;
 
     /*聊天记录*/
-    private List<History> historyList;
+    private List<History> historyList = new java.util.ArrayList<>();
 
     /*本次展示的聊天记录中最早一条的发送时间,用于上拉获取更早之前的聊天记录时使用.设置为ISO8601能传递更准确的时间*/
     @JsonFormat(pattern = StdDateFormat.DATE_FORMAT_STR_ISO8601)

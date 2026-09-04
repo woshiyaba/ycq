@@ -1,0 +1,6 @@
+.list-cover {
+  height: 125rpx;
+  width: 125rpx;
+  border-radius: 16rpx;
+  background: #f5f5f5
+}

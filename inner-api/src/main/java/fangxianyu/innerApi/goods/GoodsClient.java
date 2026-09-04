@@ -2,6 +2,7 @@ package fangxianyu.innerApi.goods;
 
 import io.github.nnkwrik.common.dto.Response;
 import io.github.nnkwrik.common.dto.SimpleGoods;
+import io.github.nnkwrik.common.dto.SimpleContent;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,6 +21,9 @@ import java.util.Map;
 @FeignClient(name = "goods-service")
 @RequestMapping("/goods-service")
 public interface GoodsClient {
+
+    @GetMapping("/simpleContentList")
+    Response<Map<Integer, SimpleContent>> getSimpleContentList(@RequestParam("postIds") List<Integer> postIds);
 
 
     @GetMapping("/simpleGoods/{goodsId}")

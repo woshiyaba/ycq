@@ -1,0 +1,53 @@
+<import src="../../../templates/cards.wxml" />
+<view class="screen">
+  <view class="tabs" wx:if="{{mode==='favorites'}}">
+    <view class="tab {{kind==='GOODS'?'active':''}}" data-kind="GOODS" bindtap="switchKind">好物</view>
+    <view class="tab {{kind==='COMMUNITY'?'active':''}}" data-kind="COMMUNITY" bindtap="switchKind">帖子</view>
+    <view class="tab {{kind==='RECRUITMENT'?'active':''}}" data-kind="RECRUITMENT" bindtap="switchKind">招聘
+    </view>
+  </view>
+  <view class="row between section-title" wx:if="{{mode==='history'}}">
+    <text>最近看过</text>
+    <text class="muted-link" bindtap="clear">清空足迹</text>
+  </view>
+  <block wx:if="{{mode==='favorites'&&kind!=='GOODS'}}">
+    <block wx:for="{{items}}" wx:key="id">
+      <template is="{{kind==='RECRUITMENT'?'job':'entry'}}" data="{{item: item}}" />
+    </block>
+  </block>
+  <block wx:elif="{{mode==='following'}}">
+    <view class="card content-head" wx:for="{{items}}" wx:key="openId" bindtap="open" data-item="{{item}}">
+      <image wx:if="{{item.avatarUrl}}" class="avatar" src="{{item.avatarUrl}}" />
+      <view wx:else class="avatar avatar-fallback">圈</view>
+      <view class="grow">
+        <view class="bold">{{item.nickName}}</view>
+        <view class="muted top-space">看看 TA 的新动态</view>
+      </view>
+      <button class="btn small secondary" catchtap="unfollow" data-id="{{item.openId}}">已关注</button>
+    </view>
+  </block>
+  <block wx:elif="{{mode==='history'}}">
+    <view class="card content-head" wx:for="{{items}}" wx:key="historyKey" bindtap="open"
+      data-item="{{item}}">
+      <image class="list-cover" src="{{item.primaryPicUrl}}" mode="aspectFill" />
+      <view class="grow">
+        <view class="bold">{{item.title||item.name}}</view>
+        <view class="muted top-space">{{item.kind==='RECRUITMENT'?'招聘':item.kind==='COMMUNITY'?'帖子':'好物'}} ·
+          {{item.visitedAt}}
+        </view>
+      </view>
+      <text class="chevron">›</text>
+    </view>
+  </block>
+  <view class="grid" wx:else>
+    <view wx:for="{{items}}" wx:key="id">
+      <template is="goods" data="{{item: item}}" />
+      <view class="muted small" wx:if="{{mode==='goods'}}" style="padding:8rpx">
+        {{item.isSelling?'出售中':'已售出 / 已下架'}}
+      </view>
+    </view>
+  </view>
+  <view class="empty" wx:if="{{!items.length&&!loading}}">{{error||'这里还没有内容'}}</view>
+  <view class="loading" wx:if="{{loading}}">正在加载…</view>
+  <view class="loading" wx:if="{{!hasMore&&items.length}}">已经到底啦</view>
+</view>

@@ -1,94 +1,73 @@
-<view class="container">
-  <view class="post-goods">
-    <input class="title" maxlength="60" placeholder="标题，品牌品类都是买家喜欢搜索的" bindinput='bindInputTitle' />
-
-    <view class="input-box">
-      <textarea class="content" bindinput="bindInputDesc" maxlength="800" placeholder="描述一下宝贝的转手原因，入手渠道和使用感受" />
-      <text class="count">{{800 - desc.length}}</text>
+<view class="screen safe-bottom">
+  <view class="notice">让闲置遇见新主人，分享真实的使用情况</view>
+  <view wx:if="{{error}}" class="notice error-text">{{error}}</view>
+  <view class="card">
+    <view class="field">
+      <input class="input bold" value="{{form.name}}" data-field="name" bindinput="input" maxlength="100"
+        placeholder="宝贝标题，品牌、品类、成色" />
     </view>
-
-
-
-
-    <view class='img'>
-      <view wx:for="{{imgList}}" wx:key="{{index}}">
-
-        <view wx:if="{{imgList[index] == 'false'}}">
-          <!-- 上传中 -->
-          <view class='add blur' style="background-image: url('{{tmpImgList[index]}}')">
-            <image class='loading' src='/static/images/loading.png'></image>
-          </view>
-        </view>
-        <view wx:else>
-          <!-- 完成上传 -->
-          <view class='add'>
-            <image class="delete" src="/static/images/delete.png" bindtap='removeImg' data-index='{{index}}'></image>
-
-            <image class='upload' bindtap='preview' data-url='{{imgList[index]}}' mode='aspectFill' src='{{imgList[index]}}'></image>
-          </view>
-        </view>
-
-      </view>
-      <view wx:if="{{imgList.length < 10}}" class='add' bindtap='addImage'>
-        <text class='txt'>添加图片</text>
-        <image class='icon' src='/static/images/plus.png'></image>
-      </view>
-
+    <view class="field">
+      <textarea class="textarea" value="{{form.desc}}" data-field="desc" bindinput="input" maxlength="5000"
+        auto-height placeholder="描述一下宝贝的转手原因、使用感受和成色…" />
     </view>
-    <navigator url="../region/region" class='location'>
-      <view class="icon" wx:if='{{!regionId}}'>选择发货地点</view>
-      <view class="icon" wx:else>{{region}}</view>
+    <view class="field">
+      <view class="image-grid">
+        <view class="image-cell" wx:for="{{form.images}}" wx:key="*this">
+          <image src="{{item}}" mode="aspectFill" />
+          <view class="image-delete" bindtap="removeImage" data-index="{{index}}">×</view>
+        </view>
+        <view class="image-cell image-add" wx:if="{{form.images.length<9}}" bindtap="addImages">
+          <text class="title">＋</text>
+          <text>{{uploading?'上传中…':'添加图片'}}</text>
+        </view>
+      </view>
+      <view class="muted top-space">最多 9 张，拍得清楚更容易卖出哦</view>
+    </view>
+    <navigator class="field field-row" url="../region/region">
+      <view class="label">所在地区</view>
+      <view class="grow" style="text-align:right">{{form.region||'请选择'}} ›</view>
     </navigator>
-
+    <navigator class="field field-row" url="../category/category">
+      <view class="label">宝贝分类</view>
+      <view class="grow" style="text-align:right">{{categoryName||'请选择'}} ›</view>
+    </navigator>
   </view>
-
-
-
-
-
-
-  <view class="detail">
-    <view class="element">
-      <view class="lable">价格</view>
-      <view class="rmb">¥</view>
-      <input class="price" type="digit" placeholder="0.00" bindinput='bindInputPrice' />
+  <view class="card">
+    <view class="field field-row">
+      <view class="label">出售价格</view>
+      <input type="digit" value="{{form.price}}" bindinput="input" data-field="price" placeholder="¥ 0.00" />
     </view>
-    <view class="element">
-      <view class="lable">入手价</view>
-      <view class="rmb">¥</view>
-      <input class="price" type="digit" placeholder="0.00" bindinput='bindInputMarketPrice' />
+    <view class="field field-row">
+      <view class="label">原价</view>
+      <input type="digit" value="{{form.marketPrice}}" bindinput="input" data-field="marketPrice"
+        placeholder="选填" />
     </view>
-    <view class="element">
-      <view class="lable">运费</view>
-      <view class="rmb">¥</view>
-      <input class="price" type="digit" placeholder="0.00" bindinput='bindInputPostage' value='{{postage}}' disabled='{{isPostageFree}}' />
-      <checkbox-group bindchange="postageFree">
-        <label class="checkbox-a">
-          <checkbox value="true" color="#fd9f06" />包邮
-        </label>
-      </checkbox-group>
-    </view>
-    <navigator url="../category/category" class="element">
-      <view class="lable">分类</view>
-
-      <view class="cate">{{cateName ? cateName : '选择分类'}}</view>
-      <image background-size="cover" class="i" src="/static/images/address_right.png"></image>
-    </navigator>
-
-    <view class="element">
-      <view class="lable">交易方式</view>
+    <view class="field">
+      <view class="label">交易方式</view>
       <checkbox-group bindchange="trade">
-        <label>
-          <checkbox class="checkbox-b" value="ableSelfTake" color="#fd9f06" />自提
-          <checkbox class="checkbox-b" value="ableMeet" color="#fd9f06" />同城面交
-          <checkbox class="checkbox-b" value="ableExpress" color="#fd9f06" />邮寄
+        <label class="check-row">
+          <text>同城自提</text>
+          <checkbox value="ableSelfTake" checked="{{form.ableSelfTake}}" color="#d5ac23" />
+        </label>
+        <label class="check-row">
+          <text>同城面交</text>
+          <checkbox value="ableMeet" checked="{{form.ableMeet}}" color="#d5ac23" />
+        </label>
+        <label class="check-row">
+          <text>快递邮寄</text>
+          <checkbox value="ableExpress" checked="{{form.ableExpress}}" color="#d5ac23" />
         </label>
       </checkbox-group>
     </view>
-
+    <view class="field field-row" wx:if="{{form.ableExpress}}">
+      <view class="label">运费</view>
+      <input type="digit" value="{{form.postage}}" bindinput="input" data-field="postage"
+        placeholder="0 为包邮" />
+    </view>
   </view>
-
-  <view class="bottom-btn">
-    <button class="r" bindtap='onPost'>确认发布</button>
-  </view>
+</view>
+<view class="bottom-bar">
+  <button class="btn grow" bindtap="submit" loading="{{busy}}" disabled="{{busy||uploading||error}}">
+    {{id?'保存修改':'确认发布'}}
+  </button>
 </view>

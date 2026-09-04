@@ -16,6 +16,21 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class GlobalExceptionHandler {
 
     @ResponseBody
+    @ExceptionHandler(IllegalArgumentException.class)
+    public Object handleInvalidArgument(IllegalArgumentException e) {
+        return Response.fail(Response.POST_INFO_INCOMPLETE, e.getMessage());
+    }
+
+    @ResponseBody
+    @ExceptionHandler({org.springframework.http.converter.HttpMessageNotReadableException.class,
+            org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+            org.springframework.web.bind.MethodArgumentNotValidException.class})
+    public Object handleInvalidRequest() {
+        return Response.fail(Response.POST_INFO_INCOMPLETE, "请求参数不正确，请检查后重试");
+    }
+
+    @ResponseBody
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public Object handleMaxUploadSizeExceededException() {
         return Response.fail(Response.UPLOAD_FILE_INVALID, "上传文件大小超过限制");

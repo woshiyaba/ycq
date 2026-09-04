@@ -1,0 +1,56 @@
+<view class="screen safe-bottom">
+  <view class="notice" wx:if="{{select}}">点击地址，用于本次订单收货</view>
+  <view class="card" wx:for="{{addresses}}" wx:key="id">
+    <view bindtap="choose" data-address="{{item}}">
+      <view class="row between">
+        <view class="bold">{{item.name}}　{{item.phone}}</view>
+        <text class="pill" wx:if="{{item.isDefault}}">默认</text>
+      </view>
+      <view class="body-text top-space">{{item.region}} {{item.detail}}</view>
+    </view>
+    <view class="divider"></view>
+    <view class="row between">
+      <text class="muted">{{select?'点击上方选择':''}}</text>
+      <view class="row gap">
+        <text class="link small" bindtap="edit" data-address="{{item}}">编辑</text>
+        <text class="muted-link" bindtap="remove" data-id="{{item.id}}">删除</text>
+      </view>
+    </view>
+  </view>
+  <view class="empty" wx:if="{{!addresses.length}}">{{error||'还没有地址，添加一个吧'}}</view>
+</view>
+<view class="bottom-bar">
+  <button class="btn grow" bindtap="edit">＋ 新增收货地址</button>
+</view>
+<view class="overlay" wx:if="{{editing}}" bindtap="close">
+  <view class="sheet" catchtap="noop">
+    <view class="row between">
+      <text class="title">{{form.id?'编辑地址':'新增地址'}}</text>
+      <text bindtap="close">×</text>
+    </view>
+    <view class="field field-row">
+      <view class="label">收件人</view>
+      <input value="{{form.name}}" data-field="name" bindinput="input" maxlength="30" placeholder="姓名" />
+    </view>
+    <view class="field field-row">
+      <view class="label">手机号</view>
+      <input type="text" value="{{form.phone}}" data-field="phone" bindinput="input" maxlength="24"
+        placeholder="手机号或固定电话" />
+    </view>
+    <view class="field field-row">
+      <view class="label">所在地区</view>
+      <input value="{{form.region}}" data-field="region" bindinput="input" maxlength="100"
+        placeholder="省 市 区" />
+    </view>
+    <view class="field">
+      <view class="label">详细地址</view>
+      <input class="input" value="{{form.detail}}" data-field="detail" bindinput="input" maxlength="200"
+        placeholder="街道、小区、楼栋门牌号" />
+    </view>
+    <view class="field row between">
+      <text>设为默认地址</text>
+      <switch checked="{{form.isDefault}}" color="#dfbe45" bindchange="default" />
+    </view>
+    <button class="btn top-space" bindtap="save" loading="{{busy}}" disabled="{{busy}}">保存地址</button>
+  </view>
+</view>

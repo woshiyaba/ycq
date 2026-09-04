@@ -17,6 +17,8 @@ public class WsMessage {
     private String senderId;
     private String receiverId;
     private Integer goodsId;
+    private Integer postId;
+    private String clientMessageId;
 
     /*参考 constant.MessageType类*/
     private Integer messageType;

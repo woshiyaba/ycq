@@ -1,22 +1,15 @@
-<!-- 在分类页选择某个分类之后的页 -->
-<view class="container">
-    <view class="cate-nav">
-        <scroll-view scroll-x="true" class="cate-nav-body" style="width: 750rpx;" scroll-left="{{scrollLeft}}">
-            <view  wx:for="{{navList}}" wx:key="{{index}}" class="item {{ id == item.id ? 'active' : ''}}" data-id="{{item.id}}" data-index="{{index}}" bindtap="switchCate">
-                <view class="name">{{item.name}}</view>
-            </view>
-        </scroll-view>
-    </view>
-    <scroll-view scroll-y="true" scroll-top="{{scrollTop}}" style="height:{{scrollHeight}};">
-
-    <view class="cate-item">
-        <view class="b">
-            <navigator class="item {{(iindex + 1) % 2 == 0 ? 'item-b' : ''}}"   url="/pages/goods/goods?id={{iitem.id}}" wx:for="{{goodsList}}" wx:for-item="iitem" wx:for-index="iindex" wx:key="{{index}}">
-                <image class="img" src="{{iitem.primaryPicUrl}}" background-size="cover"></image>
-                <text class="name">{{iitem.name}}</text>
-                <text class="price">￥{{iitem.price}}</text>
-            </navigator>
-        </view>
-    </view>
-    </scroll-view>
+<import src="../../../templates/cards.wxml" />
+<view class="screen">
+  <view class="tabs">
+    <view wx:for="{{categories}}" wx:key="id" class="tab {{id===item.id?'active':''}}" bindtap="choose"
+      data-id="{{item.id}}">{{item.name}}</view>
+  </view>
+  <view class="grid">
+    <block wx:for="{{goods}}" wx:key="id">
+      <template is="goods" data="{{item: item}}" />
+    </block>
+  </view>
+  <view class="empty" wx:if="{{!goods.length&&!loading}}">{{error||'这个分类还没有宝贝'}}</view>
+  <view class="loading" wx:if="{{loading}}">正在加载…</view>
+  <view class="loading" wx:if="{{!hasMore&&goods.length}}">已经到底啦</view>
 </view>

@@ -1,164 +1,107 @@
-<view class="container">
-  <!-- 图片 -->
-  <swiper class="goodsimgs" indicator-dots="true" autoplay="true" interval="3000" duration="1000">
-    <swiper-item wx:for="{{gallery}}" wx:key="{{item.id}}">
-      <image bindtap='preview' data-url="{{item.imgUrl}}" src="{{item.imgUrl}}" mode='aspectFill' background-size="cover"></image>
-    </swiper-item>
-  </swiper>
-  <view class="location-time">
-    <view class="icon time">最后编辑:{{goods.lastEdit}}</view>
-    <view class="icon location">地点:{{goods.region}}</view>
-  </view>
-  <!-- 商品详情 -->
-  <view class="goods-info">
-    <view class="c">
-      <text class="name">{{goods.name}}</text>
-      <view class='flex'>
-        <text class="price">￥{{goods.price}}</text>
-        <view wx:if='{{!goods.isSelling}}' class='tag'>已出售</view>
-      </view>
-      <text wx:if="{{goods.marketPrice}}" class="market-price">原价 : ￥{{goods.marketPrice}}</text>
-
-      <text class="desc">{{goods.desc}}</text>
-
-    </view>
-  </view>
-  <!-- 标签 -->
-  <view class="section-nav section-act">
-    <view class="t" wx:if='{{goods.ableExpress||goods.ableMeet||goods.ableSelfTake}}'>
-      <view class="tag r" wx:if="{{goods.ableExpress}}">{{!goods.postage?'包邮':'邮费:'+goods.postage+'元'}}</view>
-
-      <view class="tag y" wx:if="{{goods.ableExpress}}">支持:邮寄</view>
-      <view class="tag y" wx:if="{{goods.ableMeet}}">支持:同城面交</view>
-      <view class="tag y" wx:if="{{goods.ableSelfTake}}">支持:自提</view>
-
-    </view>
-    <view class="t">
-      <view class="tag">{{goods.wantCount}}人想要</view>
-      <view class="tag">浏览 {{goods.browseCount}}</view>
-    </view>
-  </view>
-
-  <!-- 卖家信息 -->
-  <navigator url="/pages/user/user?userId={{seller.openId}}" class="seller-nav section-act">
-    <view class="seller-t">
-      <image class="seller-avatar" src="{{seller.avatarUrl}}"></image>
-    </view>
-
-    <view class="seller-info">
-      <view class="name">{{seller.nickName}}</view>
-      <view class="history">加入平台第{{sellerDates}}天,卖出过{{sellerHistory}}件宝贝</view>
-    </view>
-
-    <image class="i" src="../../static/images/address_right.png" background-size="cover"></image>
-  </navigator>
-
-  <!-- 评论 -->
-  <view class="comments" wx:if="{{comment.length > 0}}">
-    <view class="h">
-      <text class="t">留言</text>
-    </view>
-    <view class="b">
-      <view wx:for="{{comment}}" wx:for-index="index" wx:for-item="item" wx:key="{{item.id}}">
-        <!-- comment -->
-        <view class="item">
-
-          <view class="info">
-            <view class="user">
-
-              <navigator class='navimg' url="/pages/user/user?userId={{item.simpleUser.openId}}" wx: style="background-image: url('{{item.simpleUser.avatarUrl}}')">
-              </navigator>
-
-              <text>{{item.simpleUser.nickName}}</text>
-            </view>
-            <view class="time">{{item.createTime}}</view>
-          </view>
-          <view class="content" bindtap="switchCommentPop" data-reply-id="{{item.id}}" data-reply-user-id="{{item.simpleUser.openId}}" data-reply-user-name='{{item.simpleUser.nickName}}'>
-            {{item.content}}
-          </view>
-
-          <!-- reply -->
-          <view wx:for="{{item.replyList}}" wx:for-index="iindex" wx:for-item="iitem" wx:key="{{iitem.id}}">
-            <view class="reply-info">
-              <view class="reply-user">
-                <navigator class='navimg-reply' url="/pages/user/user?userId={{iitem.simpleUser.openId}}" wx: style="background-image: url('{{iitem.simpleUser.avatarUrl}}')"></navigator>
-
-                <text>{{iitem.simpleUser.nickName}}</text>
-              </view>
-              <view class="time">{{iitem.createTime}}</view>
-            </view>
-            <view class="reply-content" bindtap="switchCommentPop" data-reply-id="{{item.id}}" data-reply-user-id="{{iitem.simpleUser.openId}}" data-reply-user-name='{{iitem.simpleUser.nickName}}'>
-              回复@{{iitem.replyUserName}}:{{iitem.content}}
-            </view>
-          </view>
-
-          <!-- reply-end -->
+<import src="../../templates/cards.wxml" />
+<view class="safe-bottom">
+  <view wx:if="{{error}}" class="empty" bindtap="load">{{error}} · 点击重试</view>
+  <block wx:if="{{goods}}">
+    <swiper class="goods-swiper" indicator-dots>
+      <swiper-item wx:for="{{gallery}}" wx:key="id">
+        <image src="{{item.imgUrl}}" mode="aspectFill" bindtap="preview" data-url="{{item.imgUrl}}" />
+      </swiper-item>
+    </swiper>
+    <view class="screen">
+      <view class="card">
+        <view class="row between">
+          <view class="price money">¥ {{goods.price}}</view>
+          <text class="pill gray" wx:if="{{!goods.isSelling}}">已售出 / 已下架</text>
         </view>
-        <!-- comment-end -->
+        <view class="muted top-space" wx:if="{{goods.marketPrice}}">原价 ¥ {{goods.marketPrice}}</view>
+        <view class="entry-title">{{goods.name}}</view>
+        <view class="top-space">
+          <text class="pill" wx:if="{{goods.ableSelfTake}}">支持自提</text>
+          <text class="pill" wx:if="{{goods.ableMeet}}">同城面交</text>
+          <text class="pill" wx:if="{{goods.ableExpress}}">{{goods.postage?'运费 ¥'+goods.postage:'包邮'}}</text>
+        </view>
+        <view class="body-text top-space">{{goods.desc}}</view>
+        <view class="muted top-space">⌖ {{goods.region}} · {{goods.browseCount||0}} 人看过</view>
+      </view>
+      <view class="card content-head" bindtap="author">
+        <image wx:if="{{seller.avatarUrl}}" class="avatar" src="{{seller.avatarUrl}}" />
+        <view wx:else class="avatar avatar-fallback">圈</view>
+        <view class="grow">
+          <view class="bold">{{seller.nickName}}</view>
+          <view class="muted">查看 TA 的主页</view>
+        </view>
+        <text class="chevron">›</text>
+      </view>
+      <view class="card" wx:if="{{mine}}">
+        <view class="row gap">
+          <button class="btn small grow" bindtap="edit">编辑宝贝</button>
+          <button class="btn small secondary grow" bindtap="status" disabled="{{busy}}">
+            {{goods.isSelling?'下架':'上架'}}
+          </button>
+          <button class="btn small danger" bindtap="remove">删除</button>
+        </view>
+      </view>
+      <view class="card">
+        <view class="row between">
+          <view class="section-title">留言 {{comments.length}}</view>
+          <text class="link" bindtap="comment">写留言</text>
+        </view>
+        <view class="comment" wx:for="{{comments}}" wx:key="id">
+          <view class="content-head">
+            <image wx:if="{{item.simpleUser.avatarUrl}}" class="avatar" src="{{item.simpleUser.avatarUrl}}" />
+            <view wx:else class="avatar avatar-fallback">圈</view>
+            <view class="grow">
+              <view class="comment-name">{{item.simpleUser.nickName}}</view>
+              <view class="muted">{{item.createTime}}</view>
+            </view>
+            <text wx:if="{{item.simpleUser.openId===me}}" class="muted-link" bindtap="removeComment"
+              data-id="{{item.id}}">删除</text>
+          </view>
+          <view class="comment-content" bindtap="comment" data-comment="{{item}}">{{item.content}}
+            <text class="muted">回复</text>
+          </view>
+          <view class="reply" wx:for="{{item.replyList}}" wx:for-item="replyItem" wx:key="id">
+            <view bindtap="comment" data-comment="{{replyItem}}">
+              <text class="bold">{{replyItem.simpleUser.nickName}}</text> 回复
+              {{replyItem.replyUserName}}：{{replyItem.content}}
+            </view>
+            <text wx:if="{{replyItem.simpleUser.openId===me}}" class="muted-link" bindtap="removeComment"
+              data-id="{{replyItem.id}}">删除</text>
+          </view>
+        </view>
+        <view class="empty" wx:if="{{!comments.length}}">还没有留言，来聊两句吧</view>
+      </view>
+      <view class="section-title" wx:if="{{related.length}}">你可能还喜欢</view>
+      <view class="grid">
+        <block wx:for="{{related}}" wx:key="id">
+          <template is="goods" data="{{item: item}}" />
+        </block>
       </view>
     </view>
-
-  </view>
-
-
-  <!-- 相关商品 -->
-  <view class="related-goods" wx:if="{{relatedGoods.length > 0}}">
-    <view class="h">
-      <view class="line"></view>
-      <text class="title">大家都在看</text>
-    </view>
-    <view class="b">
-      <view class="item" wx:for="{{relatedGoods}}" wx:key="{{item.id}}">
-        <navigator url="/pages/goods/goods?id={{item.id}}">
-          <image class="img" src="{{item.primaryPicUrl}}" background-size="cover"></image>
-          <text class="name">{{item.name}}</text>
-          <text class="price">￥{{item.price}}</text>
-        </navigator>
-      </view>
-    </view>
-  </view>
+  </block>
 </view>
-
-<!-- 评论弹框 -->
-<view class="pop-box" hidden="{{!openComment}}">
-  <view class="pop">
-    <view class="comment-pop">
-      <view class="title" wx:if="{{replyUserName}}">
-        回复@{{replyUserName}}：
-      </view>
-      <view class="title" wx:else>
-        发表留言：
-      </view>
-      <view class="content">
-        <input id='comment-input' class='' focus='{{showInput}}' placeholder="输入文本" maxlength='100' bindblur='closeComment' bindconfirm='postComment' value='{{commentContent}}' />
-      </view>
-
-    </view>
+<view class="bottom-bar" wx:if="{{goods}}">
+  <view class="bottom-action {{collected?'active':''}}" bindtap="collect">
+    <text class="symbol">{{collected?'★':'☆'}}</text>收藏
   </view>
+  <view class="bottom-action" bindtap="comment">
+    <text class="symbol">◌</text>留言
+  </view>
+  <button class="btn secondary grow" bindtap="chat" wx:if="{{!mine}}">聊一聊</button>
+  <button class="btn grow" bindtap="buy" wx:if="{{!mine}}" disabled="{{!goods.isSelling}}">
+    {{goods.isSelling?'立即购买':'暂不可购买'}}
+  </button>
+  <button class="btn grow" wx:else bindtap="edit">管理宝贝</button>
 </view>
-
-<!-- 删除弹框 -->
-<view class="pop-box" hidden="{{!openDelete}}">
-  <view class="delete-pop ">
-    <view class="close" bindtap="closeDelete">
-      <image class="icon" src="/static/images/clear_input.png"></image>
+<view class="overlay" wx:if="{{commentOpen}}" bindtap="closeComment">
+  <view class="sheet" catchtap="noop">
+    <view class="row between">
+      <view class="bold">{{reply?'回复 '+reply.simpleUser.nickName:'发表留言'}}</view>
+      <text bindtap="closeComment">×</text>
     </view>
-    <button class='delete-btn' bindtap="deleteGoods">确定删除</button>
+    <textarea class="textarea" value="{{commentBody}}" bindinput="input" maxlength="1000" focus
+      placeholder="说点什么吧…" />
+    <button class="btn" bindtap="sendComment" loading="{{busy}}" disabled="{{busy||!commentBody}}">发送留言
+    </button>
   </view>
-</view>
-
-<!-- 底部按钮 -->
-<view class="bottom-btn">
-  <view class="l" bindtap="addCannelCollect">
-    <image class="icon" src="{{ collectBackImage }}"></image>
-    收藏
-  </view>
-  <view class="l" bindtap="switchCommentPop" data-reply-id="0" data-reply-user-name='' data-reply-user-id="0">
-    <image class="icon" src="/static/images/ic_menu_chat_nor.png"></image>
-    留言
-  </view>
-  <view class="r" wx:if='{{!goods.isSelling}}' bindtap="addToCart">该商品已出售</view>
-  <view class="r" wx:elif="{{isSeller && !goods.isDelete && goods.isSelling}}" bindtap="switchDeletetPop">删除该商品</view>
-  <view class="r" wx:else bindtap="want">想要</view>
-
 </view>

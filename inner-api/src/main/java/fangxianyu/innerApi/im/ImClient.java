@@ -16,6 +16,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @RequestMapping("/chat-service")
 public interface ImClient {
 
+    @PostMapping("/createContentChat/{postId}/{senderId}/{receiverId}")
+    Response<Integer> createContentChat(@PathVariable("postId") int postId,
+            @PathVariable("senderId") String senderId, @PathVariable("receiverId") String receiverId);
+
     @PostMapping("/createChat/{goodsId}/{senderId}/{receiverId}")
     public Response<Integer> createChat(@PathVariable("goodsId") int goodsId,
                                         @PathVariable("senderId") String senderId,

@@ -9,6 +9,7 @@ import io.github.nnkwrik.imservice.model.vo.ChatIndex;
 import io.github.nnkwrik.imservice.model.vo.ChatIndexEle;
 import io.github.nnkwrik.imservice.service.FormService;
 import io.github.nnkwrik.imservice.service.IndexService;
+import io.github.nnkwrik.imservice.dao.ChatMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -34,6 +35,9 @@ public class ChatController {
 
     @Autowired
     private FormService formService;
+
+    @Autowired
+    private ChatMapper chatMapper;
 
 
     /**
@@ -95,6 +99,14 @@ public class ChatController {
      * @param user
      * @return
      */
+    @PostMapping("/read-all")
+    public Response readAll(@JWT(required = true) JWTUser user) {
+        for (Integer chatId : chatMapper.getChatIdsByUser(user.getOpenId())) {
+            formService.flushUnread(chatId, user.getOpenId());
+        }
+        return Response.ok();
+    }
+
     @PostMapping("/flushUnread/{chatId}")
     public Response flushUnread(@PathVariable("chatId") int chatId,
                                 @JWT(required = true) JWTUser user) {

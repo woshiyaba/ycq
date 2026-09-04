@@ -5,6 +5,7 @@ import io.github.nnkwrik.goodsservice.model.po.PostExample;
 import io.github.nnkwrik.goodsservice.model.po.Region;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author nnkwrik
@@ -14,7 +15,13 @@ public interface PostService {
 
     void postGoods(PostExample post);
 
-    void deleteGoods(int goodsId, String userId) throws Exception;
+    void deleteGoods(int goodsId, String userId);
+
+    void updateGoods(int goodsId, String userId, PostExample post);
+
+    void setSelling(int goodsId, String userId, Boolean isSelling);
+
+    Map<String, Object> manageGoods(String userId, int page, int size);
 
     List<Region> getRegionList(int regionId);
 

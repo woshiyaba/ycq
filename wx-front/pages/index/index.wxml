@@ -1,40 +1,50 @@
-<!--index.wxml-->
-<view class="container">
-  <swiper class="banner" indicator-dots="true" autoplay="true" interval="3000" duration="1000">
-    <swiper-item wx:for="{{banner}}" wx:key="{{item.id}}">
-      <navigator url="{{item.link}}">
-        <image src="{{item.imageUrl}}" background-size="cover"></image>
-      </navigator>
-    </swiper-item>
-
-  </swiper>
-
-  <!-- 首页分类 -->
-  <view class="m-menu">
-    <navigator open-type="{{item.url == '/pages/category/index/index' ? 'reLaunch':'navigate'}}" class="item" url="{{item.url}}" wx:for="{{channel}}" wx:key="{{item.id}}">
-      <image src="{{item.iconUrl}}" background-size="cover"></image>
-      <text>{{item.name}}</text>
-    </navigator>
+<import src="../../templates/cards.wxml" />
+<view class="home-header">
+  <view class="home-search">
+    <text class="search-icon">⌕</text>
+    <input value="{{keyword}}" bindinput="inputSearch" bindconfirm="search" confirm-type="search"
+      placeholder="搜好物、找工作、看身边事" />
+    <button bindtap="search">搜索</button>
   </view>
-
-
-  <!-- 推荐商品 -->
-  <view class="a-section a-rec" wx:if="{{indexGoods.length > 0}}">
-    <view class="h">
-      <view>
-        <navigator url="../newGoods/newGoods">
-          <text class="txt">为你推荐</text>
-        </navigator>
+  <view class="home-tabs">
+    <view class="home-tab {{tab==='following'?'active':''}}" bindtap="switchTab" data-tab="following">关注
+    </view>
+    <view class="home-tab {{tab==='local'?'active':''}}" bindtap="switchTab" data-tab="local">推荐</view>
+    <view class="home-tab {{tab==='square'?'active':''}}" bindtap="switchTab" data-tab="square">广场</view>
+  </view>
+</view>
+<view class="home-content">
+  <block wx:if="{{tab==='local'}}">
+    <view class="home-categories">
+      <view wx:for="{{shortcuts}}" wx:key="name" class="home-category" bindtap="shortcut"
+        data-item="{{item}}">
+        <image src="/static/icons/{{item.icon}}.svg" class="category-icon" />
+        <text>{{item.name}}</text>
       </view>
     </view>
-    <view class="b">
-      <view class="item" wx:for="{{indexGoods}}" wx:for-index="index" wx:for-item="item" wx:key="{{item.id}}">
-        <navigator url="../goods/goods?id={{item.id}}">
-          <image class="img" src="{{item.primaryPicUrl}}" background-size="cover"></image>
-          <text class="name">{{item.name}}</text>
-          <text class="price">￥{{item.price}}</text>
-        </navigator>
+    <swiper wx:if="{{banner.length}}" class="home-banner" indicator-dots autoplay circular>
+      <swiper-item wx:for="{{banner}}" wx:key="id">
+        <image src="{{item.imageUrl}}" mode="aspectFill" />
+      </swiper-item>
+    </swiper>
+    <view class="goods-feed">
+      <view class="grid">
+        <block wx:for="{{goods}}" wx:key="id">
+          <template is="goods" data="{{item:item}}" />
+        </block>
       </view>
+      <view wx:if="{{!goods.length&&!loading&&!error}}" class="empty">还没有好物，发布第一件宝贝吧</view>
+    </view>
+  </block>
+  <view wx:else class="community-feed">
+    <block wx:for="{{entries}}" wx:key="id">
+      <template is="entry" data="{{item:item}}" />
+    </block>
+    <view wx:if="{{!loading&&!entries.length}}" class="empty">
+      <view class="empty-icon">◌</view>{{tab==='following'?'关注喜欢的用户，看看他们的新动态':'还没有新动态，来分享第一条吧'}}
     </view>
   </view>
+  <view wx:if="{{error}}" class="empty" bindtap="load">{{error}} · 点击重试</view>
+  <view class="loading" wx:if="{{loading}}">正在加载…</view>
+  <view class="loading" wx:if="{{!hasMore&&!loading}}">已经到底啦</view>
 </view>

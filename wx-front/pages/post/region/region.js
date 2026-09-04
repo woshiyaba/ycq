@@ -20,7 +20,7 @@ Page({
     if (options.id && options.name) {
       that.setData({
         parentId: parseInt(options.id),
-        name: parseInt(options.name)
+        name: options.name
       });
     }
 

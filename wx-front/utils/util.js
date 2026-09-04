@@ -1,191 +1,183 @@
-var api = require('../config/api.js');
+const config = require('../config/api.js');
+let loginPending;
 
 function formatTime(date) {
-  var year = date.getFullYear()
-  var month = date.getMonth() + 1
-  var day = date.getDate()
-
-  var hour = date.getHours()
-  var minute = date.getMinutes()
-  var second = date.getSeconds()
-
-
-  return [year, month, day].map(formatNumber).join('-') + ' ' + [hour, minute].map(formatNumber).join(':')
+  const pad = n => ('0' + n).slice(-2);
+  return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' ' + pad(date
+    .getHours()) + ':' + pad(date.getMinutes());
 }
 
-function formatNumber(n) {
-  n = n.toString()
-  return n[1] ? n : '0' + n
+function displayTime(value) {
+  if (!value) return '';
+  const date = new Date(typeof value === 'string' ? value.replace(' ', 'T') : value);
+  return Number.isNaN(date.getTime()) ? String(value).replace('T', ' ').slice(0, 16) : formatTime(date);
 }
 
-/**
- * 封封微信的的request
- */
-function request(url, data = {}, method = "GET") {
-  let that = this
-  let token = wx.getStorageSync('token')
+function origin(url) {
+  const match = /^https?:\/\/[^/]+/i.exec(url);
+  return match ? match[0].toLowerCase() : '';
+}
 
-  return new Promise(function(resolve, reject) {
+function request(url, data = {}, method = 'GET', retried = false) {
+  const own = origin(url) === origin(config.root());
+  const header = {
+    'Content-Type': 'application/json'
+  };
+  if (own && wx.getStorageSync('token')) header.Authorization = wx.getStorageSync('token');
+  return new Promise((resolve, reject) => {
     wx.request({
-      url: url,
-      data: data,
-      method: method,
-      header: {
-        'Content-Type': 'application/json',
-        'Authorization': token
-      },
-      success: function(res) {
-        console.log("success");
-
-        if (res.statusCode == 200) {
-          if (res.data.errno == 3002 || res.data.errno == 3003 || res.data.errno == 3004 || res.data.errno == 3005) {
-            console.log(res.data.errmsg)
-            //TOKEN_IS_EMPTY
-            //需要登录后才可以操作
-            wx.getSetting({
-              success: res => {
-                if (res.authSetting['scope.userInfo']) {
-                  // // 已经授权，可以直接调用 getUserInfo 获取头像昵称，不会弹框
-                  that.getUserInfo().then((res) => {
-                    that.backendLogin(res).then((res) => {
-                      that.request(url, data, method)
-                      console.log('再次请求')
-                    })
-                  })
-
-                } else {
-                  wx.navigateTo({
-                    url: '/pages/auth/auth'
-                  })
-                }
-              }
-            })
-
-          } else {
-            resolve(res.data);
+      url,
+      data,
+      method,
+      header,
+      success(res) {
+        const authError = own && (res.statusCode === 401 || [3002, 3003, 3004, 3005].indexOf(res
+          .data && res.data.errno) >= 0);
+        if (authError) {
+          if (retried || /auth\/loginByWeixin/.test(url)) {
+            wx.removeStorageSync('token');
+            wx.removeStorageSync('userInfo');
+            reject(new Error('登录已过期，请重新登录'));
+            return;
           }
-        } else {
-          reject(res.errMsg);
+          if (!loginPending) loginPending = getUserInfo().then(backendLogin).then(() => {
+            loginPending = null;
+          }, error => {
+            loginPending = null;
+            throw error;
+          });
+          loginPending.then(() => request(url, data, method, true)).then(resolve).catch(error => {
+            wx.removeStorageSync('token');
+            const pages = getCurrentPages();
+            if (!pages.length || pages[pages.length - 1].route !== 'pages/auth/auth') wx
+              .navigateTo({
+                url: '/pages/auth/auth'
+              });
+            reject(error);
+          });
+          return;
         }
-
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
+        else reject(new Error((res.data && res.data.errmsg) || '请求失败，请稍后重试'));
       },
-      fail: function(err) {
-        reject(err)
-        console.log("failed")
+      fail(error) {
+        reject(new Error(error.errMsg || '网络连接失败'));
       }
-    })
+    });
   });
 }
 
-
-
-/**
- * 检查微信会话是否过期
- */
-function checkSession() {
-  return new Promise(function(resolve, reject) {
-    wx.checkSession({
-      success: function() {
-        resolve(true);
-      },
-      fail: function() {
-        wx.login() //重新登录
-        resolve(true);
-      }
-    })
+function api(path, data, method) {
+  return request(config.root() + path.replace(/^\//, ''), data, method).then(res => {
+    if (!res || res.errno !== 0) throw new Error((res && res.errmsg) || '操作失败');
+    return res.data;
   });
 }
 
-/**
- * 在后端服务器进行登录
- */
-function backendLogin(detail) {
-  console.log("在后端服务器进行登录" + detail)
-  let that = this;
-  let code = null;
-  return new Promise(function(resolve, reject) {
-    return that.login().then((res) => {
-      code = res.code;
-    }).then(() => {
-      //登录远程服务器
-      that.request(api.AuthLoginByWeixin, {
-        code: code,
-        detail: detail
-      }, 'POST').then(res => {
-        if (res.errno === 0) {
-          //存储用户信息
-          wx.setStorageSync('userInfo', res.data.userInfo);
-          wx.setStorageSync('token', res.data.token);
-
-          resolve(res.data.userInfo);
-        } else {
-          reject(res);
-        }
-      }).catch((err) => { //request
-        reject(err);
-      });
-    }).catch((err) => { //login
-      reject(err);
-    })
-  });
-}
-
-/**
- * 调用微信登录,获取jscode
- */
 function login() {
-  let that = this
-  return new Promise(function(resolve, reject) {
-    that.checkSession().then(() => {
-      wx.login({
-        success: function (res) {
-          if (res.code) {
-            //登录远程服务器
-            console.log(res)
-            resolve(res);
-          } else {
-            reject(res);
+  return new Promise((resolve, reject) => wx.login({
+    success: res => res.code ? resolve(res) : reject(new Error('微信登录失败')),
+    fail: reject
+  }));
+}
+
+function checkSession() {
+  return new Promise(resolve => wx.checkSession({
+    success: () => resolve(true),
+    fail: () => resolve(false)
+  }));
+}
+
+function getUserInfo() {
+  return new Promise((resolve, reject) => wx.getUserInfo({
+    withCredentials: true,
+    success: resolve,
+    fail: reject
+  }));
+}
+
+function backendLogin(detail) {
+  return login().then(res => api('/auth/loginByWeixin', {
+    code: res.code,
+    detail
+  }, 'POST')).then(data => {
+    wx.setStorageSync('userInfo', data.userInfo);
+    wx.setStorageSync('token', data.token);
+    const app = getApp();
+    app.globalData.userInfo = data.userInfo;
+    app.globalData.token = data.token;
+    return data.userInfo;
+  });
+}
+
+function showErrorToast(error) {
+  wx.showToast({
+    title: typeof error === 'string' ? error : error.message || error.errmsg || error.errMsg || '操作失败',
+    icon: 'none'
+  });
+}
+
+function requireLogin() {
+  if (wx.getStorageSync('token') && wx.getStorageSync('userInfo')) return true;
+  wx.navigateTo({
+    url: '/pages/auth/auth'
+  });
+  return false;
+}
+
+function uploadImages(count) {
+  return new Promise((resolve, reject) => wx.chooseImage({
+      count: Math.min(count, 9),
+      sizeType: ['compressed'],
+      success: resolve,
+      fail: reject
+    }))
+    .then(res => Promise.all(res.tempFilePaths.map(path => new Promise((resolve, reject) => {
+      wx.uploadFile({
+        url: config.root() + 'upload/image',
+        filePath: path,
+        name: 'file',
+        header: {
+          Authorization: wx.getStorageSync('token') || ''
+        },
+        success(response) {
+          try {
+            const data = JSON.parse(response.data);
+            if (response.statusCode === 200 && data.errno === 0 && data.data) resolve(data.data);
+            else reject(new Error(data.errmsg || '图片上传失败'));
+          } catch (error) {
+            reject(new Error('图片上传失败'));
           }
         },
-        fail: function (err) {
-          reject(err);
-        }
+        fail: reject
       });
-    })
-  });
+    }))));
 }
 
-/**
- * 获取userInfo,只有已经授权的用户能使用这个接口
- */
-function getUserInfo() {
-  return new Promise(function(resolve, reject) {
-    wx.getUserInfo({
-      withCredentials: true,
-      success: function(res) {
-        console.log(res)
-        resolve(res);
-      },
-      fail: function(err) {
-        reject(err);
-      }
-    })
-  });
+function confirm(content) {
+  return new Promise(resolve => wx.showModal({
+    title: '温馨提示',
+    content,
+    success: res => resolve(res.confirm),
+    fail: () => resolve(false)
+  }));
 }
 
-function showErrorToast(msg) {
-  wx.showToast({
-    title: msg,
-    image: '/static/images/icon_error.png'
-  })
+function id() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 12);
 }
-
 module.exports = {
   formatTime,
+  displayTime,
   request,
-  showErrorToast,
-  checkSession,
+  api,
   login,
+  checkSession,
   getUserInfo,
   backendLogin,
-}
+  showErrorToast,
+  requireLogin,
+  uploadImages,
+  confirm,
+  id
+};

@@ -1,1 +1,46 @@
-/* pages/topbarNav/topbarNav.wxss */
+.publish-heading {
+  padding: 50rpx 8rpx 60rpx
+}
+
+.publish-option {
+  display: flex;
+  align-items: center;
+  gap: 30rpx;
+  background: #fff;
+  padding: 40rpx 28rpx;
+  border-radius: 28rpx;
+  margin-bottom: 28rpx
+}
+
+.publish-option.yellow {
+  background: #ffe36a
+}
+
+.publish-symbol {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 28rpx;
+  background: rgba(255, 255, 255, .6);
+  text-align: center;
+  line-height: 100rpx;
+  font-size: 44rpx;
+  font-weight: 700
+}
+
+.publish-option .chevron {
+  margin-left: auto
+}
+
+.pink {
+  background: #fff0e8;
+  color: #d48f60
+}
+
+.blue {
+  background: #eaf0fe;
+  color: #759acb
+}
+
+.screen {
+  padding-bottom: calc(150rpx + env(safe-area-inset-bottom));
+}

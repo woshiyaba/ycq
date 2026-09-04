@@ -1,20 +1,12 @@
-<view class="container">
-  <view class="form-box">
-
-    <view class="userinfo">
-      <block>
-        <image class="userinfo-avatar" src="{{userInfo.avatarUrl}}" mode="cover"></image>
-        <text class="userinfo-nickname">{{userInfo.nickName}}</text>
-      </block>
-    </view>
-
-    <!-- 不能用 open-type="getUserInfo" 的版本 -->
-    <button wx:if="{{!canIUse}}" class="btn" disabled="true">微信版本过低,请更新后再尝试授权</button>
-
-    <button wx:elif="{{!hasUserInfo}}" class="btn" open-type="getUserInfo" bindgetuserinfo="startLogin">{{load?'请稍等..':'授权登录'}}</button>
-    <button wx:else disabled="true" class="btn">授权成功</button>
-
-    <button type="default" class="btn" bindtap="goback">返回上一页</button>
-
+<view class="login-screen">
+  <view class="login-logo">圈</view>
+  <view class="login-title">欢迎来到运城圈</view>
+  <view class="muted">身边好物 · 同城生活 · 招聘兼职</view>
+  <view class="login-copy">登录后，可以发布动态、收藏好物
+    <br />和身边的人聊一聊
   </view>
+  <button class="btn" open-type="getUserInfo" bindgetuserinfo="startLogin" loading="{{busy}}"
+    disabled="{{busy}}">{{busy?'登录中…':'微信授权登录'}}</button>
+  <view class="error-text top-space small" wx:if="{{error}}">{{error}}</view>
+  <button class="btn secondary top-space" bindtap="back">先逛一逛</button>
 </view>

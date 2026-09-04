@@ -1,75 +1,84 @@
 {
   "pages": [
     "pages/index/index",
-    "pages/search/search",
-    "pages/goods/goods",
-    "pages/category/list/list",
     "pages/category/index/index",
+    "pages/post/nav2post/nav2post",
+    "pages/chat/chatIndex/chatIndex",
+    "pages/ucenter/index/index",
+    "pages/search/search",
+    "pages/category/list/list",
+    "pages/goods/goods",
     "pages/auth/auth",
     "pages/post/post/post",
     "pages/post/region/region",
-    "pages/post/nav2post/nav2post",
     "pages/post/category/category",
-    "pages/ucenter/income/income",
-    "pages/ucenter/collect/collect",
-    "pages/ucenter/index/index",
+    "pages/recruit/index/index",
+    "pages/content/list/list",
+    "pages/content/detail/detail",
+    "pages/content/form/form",
+    "pages/account/profile/profile",
+    "pages/account/list/list",
+    "pages/account/addresses/addresses",
+    "pages/orders/confirm/confirm",
+    "pages/orders/list/list",
+    "pages/orders/detail/detail",
+    "pages/chat/chatForm/chatForm",
+    "pages/user/user",
+    "pages/ucenter/posted/posted",
     "pages/ucenter/bought/bought",
     "pages/ucenter/sold/sold",
-    "pages/ucenter/posted/posted",
-    "pages/ucenter/about/about",
-    "pages/user/user",
-    "pages/chat/chatIndex/chatIndex",
-    "pages/chat/chatForm/chatForm",
-    "pages/undone/undone"
+    "pages/ucenter/collect/collect"
   ],
   "window": {
-    "backgroundTextStyle": "dark",
-    "navigationBarBackgroundColor": "#fff",
-    "navigationBarTitleText": "仿闲鱼交易平台",
+    "navigationBarBackgroundColor": "#ffe36a",
+    "navigationBarTitleText": "运城圈",
     "navigationBarTextStyle": "black",
-    "enablePullDownRefresh": false
+    "backgroundColor": "#f5f5f5",
+    "backgroundTextStyle": "dark"
   },
   "tabBar": {
-    "backgroundColor": "#fafafa",
+    "color": "#8c8c8c",
+    "selectedColor": "#242424",
+    "backgroundColor": "#fff",
     "borderStyle": "white",
-    "selectedColor": "#333",
-    "color": "#333",
     "list": [
       {
         "pagePath": "pages/index/index",
+        "text": "圈",
         "iconPath": "static/images/ic_menu_home_nor.png",
-        "selectedIconPath": "static/images/ic_menu_home_pressed.png",
-        "text": "首页"
+        "selectedIconPath": "static/images/ic_menu_home_pressed.png"
       },
       {
         "pagePath": "pages/category/index/index",
+        "text": "精选",
         "iconPath": "static/images/ic_menu_cate_nor.png",
-        "selectedIconPath": "static/images/ic_menu_cate_pressed.png",
-        "text": "分类"
+        "selectedIconPath": "static/images/ic_menu_cate_pressed.png"
       },
       {
         "pagePath": "pages/post/nav2post/nav2post",
+        "text": "卖",
         "iconPath": "static/images/ic_menu_add_nor.png",
-        "selectedIconPath": "static/images/ic_menu_add_nor.png",
-        "text": "发布"
+        "selectedIconPath": "static/images/ic_menu_add_nor.png"
       },
       {
         "pagePath": "pages/chat/chatIndex/chatIndex",
+        "text": "消息",
         "iconPath": "static/images/ic_menu_chat_nor.png",
-        "selectedIconPath": "static/images/ic_menu_chat_pressed.png",
-        "text": "消息"
+        "selectedIconPath": "static/images/ic_menu_chat_pressed.png"
       },
       {
         "pagePath": "pages/ucenter/index/index",
+        "text": "我的",
         "iconPath": "static/images/ic_menu_me_nor.png",
-        "selectedIconPath": "static/images/ic_menu_me_pressed.png",
-        "text": "我的"
+        "selectedIconPath": "static/images/ic_menu_me_pressed.png"
       }
-    ]
+    ],
+    "custom": true
   },
   "networkTimeout": {
-    "request": 10000,
-    "downloadFile": 10000
+    "request": 15000,
+    "uploadFile": 30000,
+    "downloadFile": 15000
   },
-  "debug": true
+  "debug": false
 }

@@ -5,6 +5,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Collections;
 
 /**
  * redis client
@@ -16,6 +17,9 @@ import java.util.List;
 @Component
 public class RedisClient {
 
+    // ponytail: callers share this bean's monitor for queue read/modify/write in one IM instance;
+    // use Redis atomic queues and durable message IDs before running multiple IM instances.
+
     @Autowired
     private RedisTemplate redisTemplate;
 
@@ -25,7 +29,9 @@ public class RedisClient {
     }
 
     public <T> List<T> multiGet(List<String> keys) {
-        return redisTemplate.opsForValue().multiGet(keys);
+        if (keys == null || keys.isEmpty()) return Collections.emptyList();
+        List<T> values = redisTemplate.opsForValue().multiGet(keys);
+        return values == null ? Collections.emptyList() : values;
     }
 
     public void set(String key, Object value) {

@@ -6,6 +6,7 @@ import io.github.nnkwrik.common.dto.SimpleUser;
 import io.github.nnkwrik.common.util.BeanListUtils;
 import io.github.nnkwrik.goodsservice.dao.CategoryMapper;
 import io.github.nnkwrik.goodsservice.dao.GoodsMapper;
+import io.github.nnkwrik.goodsservice.dao.OrderMapper;
 import io.github.nnkwrik.goodsservice.model.po.Category;
 import io.github.nnkwrik.goodsservice.model.po.Goods;
 import io.github.nnkwrik.goodsservice.model.po.GoodsComment;
@@ -16,6 +17,7 @@ import io.github.nnkwrik.goodsservice.service.GoodsService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -32,6 +34,9 @@ public class GoodsServiceImpl implements GoodsService {
 
     @Autowired
     private GoodsMapper goodsMapper;
+
+    @Autowired
+    private OrderMapper orderMapper;
 
     @Autowired
     private UserClientHandler userClientHandler;
@@ -102,7 +107,7 @@ public class GoodsServiceImpl implements GoodsService {
     @Override
     public List<CommentVo> getGoodsComment(int goodsId) {
         List<GoodsComment> baseCommentPo = goodsMapper.findBaseComment(goodsId);
-        if (baseCommentPo == null || baseCommentPo.size() <= 0) return null;
+        if (baseCommentPo == null || baseCommentPo.isEmpty()) return Collections.emptyList();
 
         List<CommentVo> baseComment = BeanListUtils.copyListProperties(baseCommentPo, CommentVo.class);
         Set<String> userIdSet = new HashSet<>();
@@ -114,7 +119,10 @@ public class GoodsServiceImpl implements GoodsService {
                     //查找回复评论的评论
                     List<GoodsComment> replyListPo = goodsMapper.findReplyComment(base.getId());
                     List<CommentVo> replyList = BeanListUtils.copyListProperties(replyListPo, CommentVo.class);
-                    replyList.stream().forEach(reply -> userIdSet.add(reply.getUserId()));
+                    replyList.forEach(reply -> {
+                        userIdSet.add(reply.getUserId());
+                        userIdSet.add(reply.getReplyUserId());
+                    });
                     base.setReplyList(replyList);
                 });
 
@@ -131,19 +139,50 @@ public class GoodsServiceImpl implements GoodsService {
     }
 
     @Override
+    @Transactional
     public void addComment(int goodsId, String userId, int replyCommentId, String replyUserId, String content) {
+        if (content == null || content.trim().isEmpty() || content.trim().length() > 1000) {
+            throw new IllegalArgumentException("留言不能为空且不能超过 1000 字");
+        }
+        Goods goods = orderMapper.lockGoods(goodsId);
+        if (goods == null || Boolean.TRUE.equals(goods.getIsDelete())) {
+            throw new IllegalArgumentException("商品不存在或已删除");
+        }
+        if (replyCommentId < 0) throw new IllegalArgumentException("回复留言不存在");
+        replyUserId = goods.getSellerId();
+        if (replyCommentId > 0) {
+            GoodsComment target = goodsMapper.findComment(replyCommentId);
+            if (target == null || Boolean.TRUE.equals(target.getIsDelete()) || !Objects.equals(target.getGoodsId(), goodsId)) {
+                throw new IllegalArgumentException("回复留言不存在或不属于此商品");
+            }
+            replyUserId = target.getUserId();
+            if (target.getReplyCommentId() != null && target.getReplyCommentId() > 0) {
+                replyCommentId = target.getReplyCommentId();
+            }
+        }
+        content = content.trim();
         goodsMapper.addComment(goodsId, userId, replyCommentId, replyUserId, content);
     }
 
+    @Override
+    @Transactional
+    public void deleteComment(int id, String userId) {
+        GoodsComment comment = goodsMapper.findComment(id);
+        if (comment == null || !userId.equals(comment.getUserId())) {
+            throw new IllegalArgumentException("只能删除自己的留言");
+        }
+        orderMapper.lockGoods(comment.getGoodsId());
+        goodsMapper.deleteComment(id, userId);
+    }
 
     private CommentVo setUser4Comment(Map<String, SimpleUser> simpleUserMap, CommentVo comment) {
-        SimpleUser userDTO = simpleUserMap.get(comment.getUserId());
+        SimpleUser userDTO = simpleUserMap == null ? null : simpleUserMap.get(comment.getUserId());
         if (userDTO == null) {
             comment.setSimpleUser(SimpleUser.unknownUser());
         } else {
             comment.setSimpleUser(userDTO);
         }
-        SimpleUser replyUserDTO = simpleUserMap.get(comment.getReplyUserId());
+        SimpleUser replyUserDTO = simpleUserMap == null ? null : simpleUserMap.get(comment.getReplyUserId());
         if (replyUserDTO == null) {
             comment.setReplyUserName("用户不存在");
         } else {

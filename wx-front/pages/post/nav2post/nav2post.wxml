@@ -1,1 +1,30 @@
-<!-- 只用于跳转到post页面 -->
+<view class="screen">
+  <view class="publish-heading">
+    <view class="title">今天，想发布点什么？</view>
+    <view class="muted top-space">让每一份分享，都遇见有需要的人</view>
+  </view>
+  <view class="publish-option yellow" bindtap="go" data-url="/pages/post/post/post">
+    <view class="publish-symbol">物</view>
+    <view>
+      <view class="title">闲置好物</view>
+      <view class="small top-space">让闲置流动起来</view>
+    </view>
+    <text class="chevron">›</text>
+  </view>
+  <view class="publish-option" bindtap="go" data-url="/pages/content/form/form?kind=COMMUNITY">
+    <view class="publish-symbol pink">圈</view>
+    <view>
+      <view class="title">生活动态</view>
+      <view class="muted top-space">晒生活、聊身边的新鲜事</view>
+    </view>
+    <text class="chevron">›</text>
+  </view>
+  <view class="publish-option" bindtap="go" data-url="/pages/content/form/form?kind=RECRUITMENT">
+    <view class="publish-symbol blue">招</view>
+    <view>
+      <view class="title">招聘信息</view>
+      <view class="muted top-space">发布职位，寻找合适的人</view>
+    </view>
+    <text class="chevron">›</text>
+  </view>
+</view>

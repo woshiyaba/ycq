@@ -52,6 +52,7 @@ public class UserController {
     public Response collectAddOrDelete(@PathVariable("goodsId") int goodsId,
                                        @PathVariable("userHasCollect") boolean hasCollect,
                                        @JWT(required = true) JWTUser user) {
+        goodsService.getGoodsDetail(goodsId);
         userService.collectAddOrDelete(goodsId, user.getOpenId(), hasCollect);
         log.info("用户【{}】添加或删除收藏商品，商品id={}，是否是添加?{}", user.getNickName(), goodsId, !hasCollect);
         return Response.ok();
@@ -177,9 +178,13 @@ public class UserController {
                                   @PathVariable("goodsId") int goodsId,
                                   @PathVariable("sellerId") String sellerId) {
 
+        Goods goods = goodsService.getGoodsDetail(goodsId);
+        if (!sellerId.equals(goods.getSellerId()) || sellerId.equals(user.getOpenId()))
+            throw new IllegalArgumentException("请选择有效的商品卖家");
         userService.addWant(goodsId, user.getOpenId());
         //创建对话
         Integer chatId = imClientHandler.createChat(goodsId, user.getOpenId(), sellerId);
+        if (chatId == null) return Response.fail(5002, "聊天暂时不可用，请稍后重试");
         log.info("用户id=[{}],将商品id=[{}]标记为想要.并创建对话,chatId=[{}]", user.getOpenId(), goodsId, chatId);
 
         return Response.ok(chatId);

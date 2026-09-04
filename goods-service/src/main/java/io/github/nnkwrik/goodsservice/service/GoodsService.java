@@ -29,4 +29,6 @@ public interface GoodsService {
 
     void addComment(int goodsId, String userId, int replyCommentId, String replyUserId, String content);
 
+    void deleteComment(int id, String userId);
+
 }

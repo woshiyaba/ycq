@@ -14,14 +14,14 @@ import java.util.List;
 @Mapper
 public interface GoodsServiceMapper {
 
-    @Select("select id, name, primary_pic_url, price\n" +
+    @Select("select id, name, primary_pic_url, price, seller_id, is_selling\n" +
             "from goods\n" +
             "where is_delete = 0\n" +
             "  and id = #{goodsId}")
     Goods getSimpleGoods(@Param("goodsId") Integer goodsId);
 
     @Select("<script>\n" +
-            "select id, name, primary_pic_url, price\n" +
+            "select id, name, primary_pic_url, price, seller_id, is_selling\n" +
             "from goods\n" +
             "where is_delete = 0\n" +
             "  and id in " +

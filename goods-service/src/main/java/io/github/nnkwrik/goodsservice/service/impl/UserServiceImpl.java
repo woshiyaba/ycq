@@ -79,7 +79,7 @@ public class UserServiceImpl implements UserService {
     public LinkedHashMap<String, List<Goods>> getUserHistoryList(String userId, int page, int size) {
         PageHelper.startPage(page, size);
         List<GoodsExample> userHistoryList = userMapper.getUserHistoryList(userId);
-        if (userHistoryList.size() < 1) return null;
+        if (userHistoryList.size() < 1) return new LinkedHashMap<>();
 
         //把数据分割成 K=日期,V=商品List 的map
         LinkedHashMap<String, List<Goods>> result = new LinkedHashMap<>();

@@ -1,0 +1,15 @@
+<view class="tab-shell">
+  <view class="tab-bar">
+    <view class="tab-item {{selected===index?'selected':''}}" wx:for="{{tabs}}" wx:key="path" bindtap="change"
+      data-index="{{index}}">
+      <view wx:if="{{item.sell}}" class="sell-circle">卖</view>
+      <block wx:else>
+        <view class="tab-icon-wrap">
+          <image class="tab-icon" src="{{item.icon}}" />
+          <text class="tab-badge" wx:if="{{index===3&&unread}}">{{unread>99?'99+':unread}}</text>
+        </view>
+        <text class="tab-name">{{item.name}}</text>
+      </block>
+    </view>
+  </view>
+</view>

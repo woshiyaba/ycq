@@ -1,0 +1,110 @@
+<view class="screen safe-bottom">
+  <view class="notice">{{kind==='RECRUITMENT'?'请填写真实的职位和联系方式，让合适的人找到你':'把生活里的新鲜事，分享给身边的圈友'}}</view>
+  <view class="notice error-text" wx:if="{{error}}">{{error}}</view>
+  <view class="card">
+    <view class="field">
+      <input class="input bold" value="{{form.title}}" data-field="title" bindinput="input" maxlength="100"
+        placeholder="{{kind==='RECRUITMENT'?'职位名称，例如：餐厅服务员':'给你的动态起个标题'}}" />
+    </view>
+    <view class="field">
+      <textarea class="textarea" value="{{form.body}}" data-field="body" bindinput="input" maxlength="5000"
+        placeholder="{{kind==='RECRUITMENT'?'介绍工作内容、工作时间和岗位情况…':'分享此刻的想法、生活趣事…'}}" auto-height />
+    </view>
+    <view class="field">
+      <view class="image-grid">
+        <view class="image-cell" wx:for="{{form.images}}" wx:key="*this">
+          <image mode="aspectFill" src="{{item}}" />
+          <view class="image-delete" bindtap="removeImage" data-index="{{index}}">×</view>
+        </view>
+        <view class="image-cell image-add" wx:if="{{form.images.length<9}}" bindtap="addImages">
+          <text class="title">＋</text>
+          <text>{{uploading?'上传中…':'添加图片'}}</text>
+        </view>
+      </view>
+      <view class="muted top-space">最多 9 张图片</view>
+    </view>
+    <view class="field field-row">
+      <view class="label">所在地区</view>
+      <input value="{{form.region}}" data-field="region" bindinput="input" maxlength="64"
+        placeholder="运城市 盐湖区" />
+    </view>
+  </view>
+  <block wx:if="{{kind==='RECRUITMENT'}}">
+    <view class="section-title">职位信息</view>
+    <view class="card">
+      <view class="field field-row">
+        <view class="label">工作类型</view>
+        <picker range="{{workNames}}" value="{{workIndex}}" bindchange="pick" data-field="workType">
+          <view class="picker-value">{{workNames[workIndex]}} ›</view>
+        </picker>
+      </view>
+      <view class="field field-row">
+        <view class="label">所属行业</view>
+        <picker range="{{industries}}" value="{{industryIndex}}" bindchange="pick" data-field="industry">
+          <view class="picker-value">{{industries[industryIndex]}} ›</view>
+        </picker>
+      </view>
+      <view class="field field-row">
+        <view class="label">薪资单位</view>
+        <picker range="{{salaryNames}}" value="{{salaryIndex}}" bindchange="pick" data-field="salaryUnit">
+          <view class="picker-value">{{salaryNames[salaryIndex]}} ›</view>
+        </picker>
+      </view>
+      <view class="field field-row" wx:if="{{salaryIndex!==4}}">
+        <view class="label">薪资待遇</view>
+        <input type="digit" value="{{form.job.salary}}" data-field="job.salary" bindinput="input"
+          placeholder="请输入金额" />
+      </view>
+      <view class="field field-row">
+        <view class="label">结薪方式</view>
+        <picker range="{{settlementNames}}" value="{{settlementIndex}}" bindchange="pick"
+          data-field="settlement">
+          <view class="picker-value">{{settlementNames[settlementIndex]}} ›</view>
+        </picker>
+      </view>
+      <view class="field field-row">
+        <view class="label">招聘人数</view>
+        <input type="number" value="{{form.job.headcount}}" data-field="job.headcount" bindinput="input"
+          placeholder="请输入人数" />
+      </view>
+      <view class="field field-row">
+        <view class="label">招聘单位</view>
+        <input value="{{form.job.company}}" data-field="job.company" bindinput="input" maxlength="100"
+          placeholder="公司 / 店铺名称" />
+      </view>
+      <view class="field">
+        <view class="label">工作地址</view>
+        <input class="input" value="{{form.job.address}}" data-field="job.address" bindinput="input"
+          maxlength="200" placeholder="请填写详细工作地址" />
+      </view>
+      <view class="field">
+        <view class="label">岗位要求</view>
+        <textarea class="textarea" value="{{form.job.requirements}}" data-field="job.requirements"
+          bindinput="input" maxlength="2000" placeholder="学历、经验、技能等要求" auto-height />
+      </view>
+      <view class="field">
+        <view class="label">福利待遇</view>
+        <input class="input" value="{{benefitsText}}" bindinput="benefits" maxlength="200"
+          placeholder="例如：包吃、包住、交通补贴" />
+      </view>
+    </view>
+    <view class="section-title">联系人</view>
+    <view class="card">
+      <view class="field field-row">
+        <view class="label">联系人</view>
+        <input value="{{form.job.contactName}}" data-field="job.contactName" bindinput="input" maxlength="30"
+          placeholder="请输入姓名" />
+      </view>
+      <view class="field field-row">
+        <view class="label">联系电话</view>
+        <input type="text" value="{{form.job.contactPhone}}" data-field="job.contactPhone" bindinput="input"
+          maxlength="30" placeholder="手机号或固定电话" />
+      </view>
+    </view>
+  </block>
+</view>
+<view class="bottom-bar">
+  <button class="btn grow" bindtap="submit" loading="{{busy}}" disabled="{{busy||uploading||error}}">
+    {{id?'保存修改':'确认发布'}}
+  </button>
+</view>

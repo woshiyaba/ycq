@@ -54,14 +54,14 @@ public interface UserMapper {
     @Select("select id, name, primary_pic_url, price, sold_time\n" +
             "from goods\n" +
             "where buyer_id = #{buyer_id}\n" +
-            "  and is_selling = 0\n" +
+            "  and sold_time is not null\n" +
             "order by sold_time desc")
     List<Goods> getUserBought(@Param("buyer_id") String buyerId);
 
     @Select("select id, name, primary_pic_url, price, sold_time\n" +
             "from goods\n" +
             "where seller_id = #{seller_id}\n" +
-            "  and is_selling = 0\n" +
+            "  and sold_time is not null\n" +
             "order by sold_time desc")
     List<Goods> getUserSold(@Param("seller_id") String sellerId);
 
@@ -92,6 +92,7 @@ public interface UserMapper {
             "                   UNION\n" +
             "                   select id, sold_time as time from goods where sold_time is not null) as ids\n" +
             "         on goods.id = ids.id and seller_id = #{user_id}\n" +
+            "where goods.is_delete=0 and (goods.is_selling=1 or goods.sold_time is not null)\n" +
             "order by time desc")
     List<GoodsExample> getUserHistoryList(@Param("user_id") String userId);
 }

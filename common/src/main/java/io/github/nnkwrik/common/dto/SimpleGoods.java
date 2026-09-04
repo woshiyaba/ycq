@@ -12,6 +12,8 @@ public class SimpleGoods {
     private String name;
     private String primaryPicUrl;
     private Double price;
+    private String sellerId;
+    private Boolean isSelling;
 
     public static SimpleGoods unknownGoods() {
         SimpleGoods unknownGoods = new SimpleGoods();

@@ -9,10 +9,10 @@ import io.github.nnkwrik.goodsservice.model.po.Region;
 import io.github.nnkwrik.goodsservice.service.PostService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Collections;
 
 /**
  * 发布商品相关api
@@ -39,22 +39,11 @@ public class PostController {
     public Response postGoods(@RequestBody PostExample post,
                               @JWT(required = true) JWTUser user) {
 
-        if (StringUtils.isEmpty(post.getName()) ||
-                StringUtils.isEmpty(post.getDesc()) ||
-                StringUtils.isEmpty(post.getRegion()) ||
-                post.getCategoryId() == null ||
-                post.getRegionId() == null ||
-                post.getPrice() == null ||
-                post.getImages() == null || post.getImages().size() < 1) {
-            String msg = "用户发布商品失败，信息不完整";
-            log.info(msg);
-            return Response.fail(Response.POST_INFO_INCOMPLETE, msg);
-        }
         post.setSellerId(user.getOpenId());
         postService.postGoods(post);
         log.info("用户发布商品：用户昵称=【{}】，商品名=【{}】，{}张图片", user.getNickName(), post.getName(), post.getImages().size());
 
-        return Response.ok();
+        return Response.ok(Collections.singletonMap("id", post.getId()));
     }
 
     /**
@@ -67,16 +56,7 @@ public class PostController {
     @DeleteMapping("/delete/{goodsId}")
     public Response deleteGoods(@PathVariable int goodsId,
                                 @JWT(required = true) JWTUser user) {
-        try {
-            postService.deleteGoods(goodsId, user.getOpenId());
-        } catch (Exception e) {
-            if (e.getMessage().equals(Response.SELLER_AND_GOODS_IS_NOT_MATCH + "")) {
-                String msg = "删除商品失败.当前用户信息和卖家信息不匹配";
-                return Response.fail(Response.SELLER_AND_GOODS_IS_NOT_MATCH, msg);
-            }
-            e.printStackTrace();
-
-        }
+        postService.deleteGoods(goodsId, user.getOpenId());
         log.info("用户删除商品: 用户id=【{}】，商品Id=【{}】", user.getOpenId(), goodsId);
         return Response.ok();
     }

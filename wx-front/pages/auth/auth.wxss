@@ -1,36 +1,30 @@
-.form-box {
-  width: 100%;
-  height: auto;
-  overflow: hidden;
-  padding: 0 40rpx;
-  margin-top: 96rpx;
-  background: #fff;
+.login-screen {
+  min-height: 100vh;
+  padding: 120rpx 60rpx;
+  background: linear-gradient(#fff6cc, #fff 70%);
+  text-align: center
 }
 
-.btn {
-  margin: 60rpx 0 40rpx 0;
-  height: 96rpx;
-  line-height: 96rpx;
-  color: #fff;
-  font-size: 30rpx;
-  width: 100%;
-  background: #ef5a5a;
-  border-radius: 6rpx;
+.login-logo {
+  width: 150rpx;
+  height: 150rpx;
+  line-height: 150rpx;
+  margin: 0 auto 50rpx;
+  background: #ffe16b;
+  border-radius: 40rpx;
+  font-size: 84rpx;
+  font-weight: 800
 }
 
-.userinfo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+.login-title {
+  font-size: 42rpx;
+  font-weight: 750;
+  margin-bottom: 24rpx
 }
 
-.userinfo-avatar {
-  width: 128rpx;
-  height: 128rpx;
-  margin: 20rpx;
-  border-radius: 50%;
-}
-
-.userinfo-nickname {
-  color: #aaa;
+.login-copy {
+  color: #888;
+  font-size: 26rpx;
+  line-height: 1.9;
+  margin: 80rpx 0 45rpx
 }

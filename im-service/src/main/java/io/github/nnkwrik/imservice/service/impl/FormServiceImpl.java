@@ -1,10 +1,12 @@
 package io.github.nnkwrik.imservice.service.impl;
 
 import com.github.pagehelper.PageHelper;
-import com.google.common.collect.Lists;
+import fangxianyu.innerApi.goods.GoodsClient;
 import fangxianyu.innerApi.goods.GoodsClientHandler;
 import fangxianyu.innerApi.user.UserClientHandler;
 import io.github.nnkwrik.common.dto.SimpleGoods;
+import io.github.nnkwrik.common.dto.SimpleContent;
+import io.github.nnkwrik.common.dto.Response;
 import io.github.nnkwrik.common.dto.SimpleUser;
 import io.github.nnkwrik.imservice.dao.ChatMapper;
 import io.github.nnkwrik.imservice.dao.HistoryMapper;
@@ -14,6 +16,7 @@ import io.github.nnkwrik.imservice.model.vo.ChatForm;
 import io.github.nnkwrik.imservice.model.vo.WsMessage;
 import io.github.nnkwrik.imservice.redis.RedisClient;
 import io.github.nnkwrik.imservice.service.FormService;
+import io.github.nnkwrik.imservice.service.ChatAccess;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -47,54 +53,62 @@ public class FormServiceImpl implements FormService {
     private GoodsClientHandler goodsClientHandler;
 
     @Autowired
+    private GoodsClient goodsClient;
+
+    @Autowired
     private RedisClient redisClient;
 
 
     @Override
     public ChatForm showForm(int chatId, String userId, int size, Date offsetTime) {
-
-
+        if (size < 1 || size > 50) throw new IllegalArgumentException("每页消息数量需为 1 至 50");
         ChatForm vo = new ChatForm();
-
         Chat chat = chatMapper.getChatById(chatId);
-        SimpleGoods simpleGoods = goodsClientHandler.getSimpleGoods(chat.getGoodsId());
-        vo.setGoods(simpleGoods);
-        if (chat.getU1().equals(userId)) {
-            SimpleUser simpleUser = userClientHandler.getSimpleUser(chat.getU2());
-            vo.setOtherSide(simpleUser);
-            vo.setIsU1(true);
+        ChatAccess.requireMember(chat, userId);
+        if (chat.getPostId() != null && chat.getPostId() > 0) {
+            Response<Map<Integer, SimpleContent>> response = goodsClient.getSimpleContentList(Collections.singletonList(chat.getPostId()));
+            if (response != null && response.getErrno() == 0 && response.getData() != null) {
+                vo.setContent(response.getData().get(chat.getPostId()));
+            }
         } else {
-            SimpleUser simpleUser = userClientHandler.getSimpleUser(chat.getU1());
-            vo.setOtherSide(simpleUser);
-            vo.setIsU1(false);
+            SimpleGoods goods = goodsClientHandler.getSimpleGoods(chat.getGoodsId());
+            vo.setGoods(goods == null ? SimpleGoods.unknownGoods() : goods);
         }
-
-
-        //已读的消息
-        PageHelper.offsetPage(0, size);
-        List<History> chatHistory = historyMapper.getChatHistory(chatId, offsetTime);
-        chatHistory = Lists.reverse(chatHistory);
-
-        //自己或对方未读的消息,获取并把自己未读的设为已读
-        List<History> unreadList = flushUnread(chatId, userId);
-
-        if (!ObjectUtils.isEmpty(unreadList)) {
-            chatHistory.addAll(unreadList);
-            chatHistory = chatHistory.stream()
-                    .filter(a -> offsetTime.compareTo(a.getSendTime()) > 0)
-                    .sorted((a, b) -> b.getSendTime().compareTo(a.getSendTime()))
-                    .limit(size)
+        vo.setIsU1(userId.equals(chat.getU1()));
+        SimpleUser other = userClientHandler.getSimpleUser(vo.getIsU1() ? chat.getU2() : chat.getU1());
+        vo.setOtherSide(other == null ? SimpleUser.unknownUser() : other);
+        final Date cursor = offsetTime == null ? new Date() : offsetTime;
+        synchronized (redisClient) {
+            // Read incoming messages from SQL after flushing; only the remaining outgoing queue is merged.
+            flushUnread(chatId, userId);
+            PageHelper.offsetPage(0, size);
+            List<History> stored = historyMapper.getChatHistory(chatId, cursor);
+            List<History> all = stored == null ? new ArrayList<>() : new ArrayList<>(stored);
+            if (all.size() >= size) {
+                long boundary = second(all.get(all.size() - 1).getSendTime());
+                all.removeIf(item -> second(item.getSendTime()) == boundary);
+                all.addAll(historyMapper.getChatHistoryAtSecond(chatId, new Date(boundary), new Date(Math.min(boundary + 1000, cursor.getTime()))));
+            }
+            List<WsMessage> remaining = redisClient.get(chatId + "");
+            all.addAll(WsListToHisList(remaining));
+            List<History> history = all.stream()
+                    .filter(item -> item.getSendTime() != null && item.getSendTime().before(cursor))
+                    .sorted(Comparator.comparing(History::getSendTime)
+                            .thenComparing(item -> item.getId() == null ? Integer.MAX_VALUE : item.getId()))
                     .collect(Collectors.toList());
-            chatHistory = Lists.reverse(chatHistory);
+            // ponytail: a page includes the entire boundary second; use an ID cursor if one-second bursts become too large.
+            if (history.size() > size) {
+                long boundary = second(history.get(history.size() - size).getSendTime());
+                history.removeIf(item -> item.getSendTime().getTime() < boundary);
+            }
+            vo.setHistoryList(history);
+            if (!history.isEmpty()) vo.setOffsetTime(new Date(second(history.get(0).getSendTime())));
         }
-
-        if (!ObjectUtils.isEmpty(chatHistory)) {
-            vo.setHistoryList(chatHistory);
-            vo.setOffsetTime(chatHistory.get(0).getSendTime());
-        }
-
-
         return vo;
+    }
+
+    private long second(Date time) {
+        return Math.floorDiv(time.getTime(), 1000) * 1000;
     }
 
     /**
@@ -106,57 +120,34 @@ public class FormServiceImpl implements FormService {
      */
     @Override
     public List<History> flushUnread(int chatId, String userId) {
-        List<WsMessage> unreadMsgList = redisClient.get(chatId + "");
-        if (!ObjectUtils.isEmpty(unreadMsgList)) {
-            List<WsMessage> myUnreadMsgList = unreadMsgList.stream()
-                    .filter(unread -> unread.getReceiverId().equals(userId))
+        ChatAccess.requireMember(chatMapper.getChatById(chatId), userId);
+        synchronized (redisClient) {
+            List<WsMessage> unread = redisClient.get(chatId + "");
+            if (ObjectUtils.isEmpty(unread)) return Collections.emptyList();
+            List<WsMessage> mine = unread.stream()
+                    .filter(message -> userId.equals(message.getReceiverId()))
                     .collect(Collectors.toList());
-            if (!ObjectUtils.isEmpty(myUnreadMsgList)) {
-                log.info("把chatId={}设为已读消息", chatId);
-                //添加为已读
-                List<History> myUnreadHistory = WsListToHisList(myUnreadMsgList);
-                historyMapper.addHistoryList(myUnreadHistory);
-
-                //删除未读
-                List<WsMessage> newUnreadList = new ArrayList<>();
-                newUnreadList.addAll(unreadMsgList);
-                newUnreadList.removeAll(myUnreadMsgList);
-                redisClient.set(chatId + "", newUnreadList);
+            if (!mine.isEmpty()) {
+                historyMapper.addHistoryList(WsListToHisList(mine));
+                List<WsMessage> remaining = new ArrayList<>(unread);
+                remaining.removeAll(mine);
+                redisClient.set(chatId + "", remaining);
             }
-
-            return WsListToHisList(unreadMsgList);
-        } else {
-            return null;
+            return WsListToHisList(unread);
         }
-
     }
 
 
     private List<History> WsListToHisList(List<WsMessage> wsMessageList) {
-        if (ObjectUtils.isEmpty(wsMessageList)) return null;
-        String u1 = null;
-        String u2 = null;
-        WsMessage message = wsMessageList.get(0);
-        if (message.getSenderId().compareTo(message.getReceiverId()) > 0) {
-            u1 = message.getReceiverId();
-            u2 = message.getSenderId();
-        } else {
-            u1 = message.getSenderId();
-            u2 = message.getReceiverId();
-        }
-        boolean u1ToU2 = u1.equals(message.getSenderId()) ? true : false;
-
+        if (ObjectUtils.isEmpty(wsMessageList)) return Collections.emptyList();
         List<History> historyList = new ArrayList<>();
-        wsMessageList.stream().forEach(msg -> {
+        wsMessageList.forEach(msg -> {
             History history = new History();
             BeanUtils.copyProperties(msg, history);
-            history.setU1ToU2(u1ToU2);
+            history.setU1ToU2(msg.getSenderId().compareTo(msg.getReceiverId()) < 0);
             historyList.add(history);
-
         });
-
         return historyList;
-
     }
 
 

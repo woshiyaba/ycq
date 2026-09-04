@@ -1,0 +1,5 @@
+.order-cover {
+  width: 145rpx;
+  height: 145rpx;
+  border-radius: 18rpx
+}

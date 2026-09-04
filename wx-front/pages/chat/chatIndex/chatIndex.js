@@ -1,136 +1,182 @@
-var util = require('../../../utils/util.js');
-var api = require('../../../config/api.js');
-var websocket = require('../../../services/websocket.js');
-
-var app = getApp();
-
+const util = require('../../../utils/util.js');
+const websocket = require('../../../services/websocket.js');
 Page({
   data: {
-    chatList: [],
-    offsetTime: null,
-    size: 10,
+    tab: 'chat',
+    chats: [],
+    notifications: [],
+    unreadCount: 0,
+    maxId: 0,
+    goodsMaxId: 0,
+    offsetTime: '',
+    page: 1,
+    hasMore: true,
+    loading: false,
+    logged: false,
+    error: ''
   },
-  onLoad: function(options) {
-    // 页面初始化 options为页面跳转所带来的参数
-
-  },
-  onReady: function() {
-    // 页面渲染完成
-
-  },
-  onShow: function() {
-    // 页面显示
-    let now = new Date();
+  onShow() {
+    const logged = !!wx.getStorageSync('token');
     this.setData({
-      offsetTime: now.toISOString(),
-      chatList: []
-    })
-    if (wx.getStorageSync('token')) {
-      this.getChatList();
-      this.openListen();
+      logged
+    });
+    if (logged) {
+      this.reload();
+      this.loadNotificationCount();
+      websocket.wsConnect().catch(() => {});
+      if (this.unsubscribe) this.unsubscribe();
+      this.unsubscribe = websocket.subscribe(message => {
+        if (message.messageType === 1 || message.messageType === 3) {
+          if (this.data.tab === 'chat') this.reload();
+        }
+      });
     }
   },
-  onHide: function() {
-    // 页面隐藏
-    websocket.listenBadge()
-
+  onHide() {
+    if (this.unsubscribe) this.unsubscribe();
+    this.unsubscribe = null;
   },
-  onUnload: function() {
-    // 页面关闭
-
+  onUnload() {
+    if (this.unsubscribe) this.unsubscribe();
   },
-  getChatList: function() {
-    let that = this;
-    util.request(api.ChatIndex, {
-      size: this.data.size,
-      offsetTime: this.data.offsetTime
-    }).then(function(res) {
-      if (res.errno === 0) {
-        console.log(res.data);
-        that.setData({
-          chatList: that.data.chatList.concat(res.data.chats),
-          offsetTime: res.data.offsetTime
+  async loadNotificationCount() {
+    try {
+      const data = await util.api('/post/notifications', {
+        page: 1,
+        size: 1
+      });
+      this.setData({
+        unreadCount: data.unreadCount || 0,
+        maxId: data.maxId || 0,
+        goodsMaxId: data.goodsMaxId || 0
+      });
+    } catch (error) {}
+  },
+  switchTab(e) {
+    if (this.data.loading) return;
+    this.setData({
+      tab: e.currentTarget.dataset.tab
+    });
+    this.reload();
+  },
+  async reload() {
+    if (this.data.loading) {
+      this._reload = true;
+      return;
+    }
+    this.setData({
+      chats: [],
+      notifications: [],
+      offsetTime: new Date().toISOString(),
+      page: 1,
+      hasMore: true
+    });
+    await this.load();
+  },
+  async load() {
+    if (this.data.loading || !this.data.hasMore || !this.data.logged) return;
+    this.setData({
+      loading: true,
+      error: ''
+    });
+    try {
+      if (this.data.tab === 'chat') {
+        const data = await util.api('/chat/index', {
+          offsetTime: this.data.offsetTime,
+          size: 10
+        });
+        this.setData({
+          chats: this.data.chats.concat((data.chats || []).map(item => {
+            item.lastChat.sendTime = util.displayTime(item.lastChat.sendTime);
+            return item;
+          })),
+          offsetTime: data.offsetTime,
+          hasMore: (data.chats || []).length === 10
         });
       } else {
-        console.log(res)
+        const data = await util.api('/post/notifications', {
+          page: this.data.page,
+          size: 20
+        });
+        this.setData({
+          notifications: this.data.notifications.concat((data.items || []).map(item => Object
+            .assign({}, item, {
+              createdAt: util.displayTime(item.createdAt)
+            }))),
+          unreadCount: data.unreadCount || 0,
+          maxId: data.maxId || 0,
+          goodsMaxId: data.goodsMaxId || 0,
+          page: this.data.page + 1,
+          hasMore: data.hasMore
+        });
       }
-    })
+    } catch (error) {
+      this.setData({
+        error: error.message
+      });
+    } finally {
+      this.setData({
+        loading: false
+      });
+      wx.stopPullDownRefresh();
+      if (this._reload) {
+        this._reload = false;
+        this.reload();
+      }
+    }
   },
-  navForm: function(e) {
-    var chatId = e.currentTarget.dataset.id
-    var index = e.currentTarget.dataset.index
-    var chatList = this.data.chatList
-
-    //减少tapbar的badge
-    var lessBadge = chatList[index].unreadCount
-    websocket.lessBadge(lessBadge)
-
-    //减少列表用户的badge
-    chatList[index].unreadCount = 0
-    this.setData({
-      chatList: chatList
-    })
-
+  openChat(e) {
+    const chat = e.currentTarget.dataset.chat;
+    websocket.lessBadge(chat.unreadCount || 0);
     wx.navigateTo({
-      url: '/pages/chat/chatForm/chatForm?id=' + chatId,
-    })
-
+      url: '/pages/chat/chatForm/chatForm?id=' + chat.lastChat.chatId
+    });
   },
-  openListen: function() {
-    let that = this
-    websocket.listenChatIndex().then(res => {
-      console.log("chatIndex监听到消息:" + res)
-
-      //ws监听到新消息,加入当前列表中
-      let chatList = this.data.chatList
-      for (var i in chatList) {
-        //存在与目前list中
-        if (chatList[i].lastChat.chatId == res.chatId) {
-          var target = chatList[i]
-          var newChatList = []
-
-
-          target.unreadCount++;
-          target.u1ToU2 = res.senderId < res.receiverId ? true : false
-          target.lastChat.messageType = res.messageType
-          target.lastChat.messageBody = res.messageBody
-          target.lastChat.sendTime = res.sendTime
-
-          chatList.splice(i, 1);
-          console.log(chatList)
-
-          newChatList.push(target)
-          newChatList = newChatList.concat(chatList)
-
-          that.setData({
-            chatList: newChatList
-          })
-          that.openListen()
-          return
-        }
+  async openNotification(e) {
+    const item = e.currentTarget.dataset.item;
+    try {
+      const data = item.source === 'GOODS' ? {
+        goodsIds: [item.id]
+      } : {
+        ids: [item.id]
+      };
+      await util.api('/post/notifications/read', data, 'POST');
+    } catch (error) {
+      util.showErrorToast(error);
+      return;
+    }
+    wx.navigateTo({
+      url: item.source === 'GOODS' ? '/pages/goods/goods?id=' + item.goodsId :
+        '/pages/content/detail/detail?id=' + item.postId
+    });
+  },
+  async readAll() {
+    try {
+      if (this.data.tab === 'chat') {
+        await util.api('/chat/read-all', {}, 'POST');
+        websocket.setBadge(0);
+      } else {
+        await util.api('/post/notifications/read-all', {
+          maxId: this.data.maxId,
+          goodsMaxId: this.data.goodsMaxId
+        }, 'POST');
+        this.setData({
+          unreadCount: 0
+        });
       }
-      //不存在, 后端可以专门写个api
-      that.onShow()
-    })
+      await this.reload();
+    } catch (error) {
+      util.showErrorToast(error);
+    }
   },
-  onPullDownRefresh: function() {
-    console.log("上拉刷新")
-    this.setData({
-      chatList: [],
-      offsetTime: null,
-      size: 10,
-    })
-    this.onShow()
-    setTimeout(function callback() {
-      wx.stopPullDownRefresh()
-    }, 500)
-
-
+  login() {
+    util.requireLogin();
   },
-  onReachBottom: function() {
-    console.log("拉到底")
-
-    this.getChatList()
+  onPullDownRefresh() {
+    if (this.data.logged) this.reload();
+    else wx.stopPullDownRefresh();
   },
-
-})
+  onReachBottom() {
+    this.load();
+  }
+});

@@ -9,17 +9,19 @@ import io.github.nnkwrik.goodsservice.cache.BrowseCache;
 import io.github.nnkwrik.goodsservice.model.po.Goods;
 import io.github.nnkwrik.goodsservice.model.po.GoodsComment;
 import io.github.nnkwrik.goodsservice.model.po.GoodsGallery;
+import io.github.nnkwrik.goodsservice.model.po.PostExample;
 import io.github.nnkwrik.goodsservice.model.vo.CategoryPageVo;
 import io.github.nnkwrik.goodsservice.model.vo.CommentVo;
 import io.github.nnkwrik.goodsservice.model.vo.GoodsDetailPageVo;
 import io.github.nnkwrik.goodsservice.service.GoodsService;
+import io.github.nnkwrik.goodsservice.service.PostService;
 import io.github.nnkwrik.goodsservice.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 商品浏览相关api
@@ -34,6 +36,9 @@ public class GoodsController {
 
     @Autowired
     private GoodsService goodsService;
+
+    @Autowired
+    private PostService postService;
 
     @Autowired
     private UserService userService;
@@ -92,10 +97,12 @@ public class GoodsController {
     @GetMapping("/detail/{goodsId}")
     public Response<GoodsDetailPageVo> getGoodsDetail(@PathVariable("goodsId") int goodsId,
                                                       @JWT JWTUser jwtUser) {
-        //更新浏览次数
-        browseCache.add(goodsId);
         //获取商品详情
         Goods goods = goodsService.getGoodsDetail(goodsId);
+        if (goods == null || Boolean.TRUE.equals(goods.getIsDelete())) {
+            return Response.fail(Response.GOODS_IN_NOT_EXIST, "商品不存在或已删除");
+        }
+        browseCache.add(goodsId);
         //获取买家信息
         SimpleUser seller = userClientHandler.getSimpleUser(goods.getSellerId());
         if (seller == null) {
@@ -147,21 +154,35 @@ public class GoodsController {
     public Response postComment(@PathVariable("goodsId") int goodsId,
                                 @RequestBody GoodsComment comment,
                                 @JWT(required = true) JWTUser user) {
-        if (StringUtils.isEmpty(user.getOpenId()) ||
-                StringUtils.isEmpty(comment.getReplyUserId()) ||
-                StringUtils.isEmpty(comment.getContent()) ||
-                comment.getReplyCommentId() == null) {
-            String msg = "用户发表评论失败，信息不完整";
-            log.info(msg);
-            return Response.fail(Response.COMMENT_INFO_INCOMPLETE, msg);
-        }
-
-        goodsService.addComment(goodsId, user.getOpenId(), comment.getReplyCommentId(), comment.getReplyUserId(), comment.getContent());
-
-        log.info("用户添加评论：用户昵称=【{}】，回复评论id=【{}】，回复内容=【{}】", user.getNickName(), comment.getReplyCommentId(), comment.getContent());
+        goodsService.addComment(goodsId, user.getOpenId(), comment.getReplyCommentId() == null ? 0 : comment.getReplyCommentId(),
+                comment.getReplyUserId(), comment.getContent());
         return Response.ok();
 
     }
 
+    @DeleteMapping("/comments/{id}")
+    public Response deleteComment(@PathVariable int id, @JWT(required = true) JWTUser user) {
+        goodsService.deleteComment(id, user.getOpenId());
+        return Response.ok();
+    }
+
+    @GetMapping("/manage")
+    public Response manage(@JWT(required = true) JWTUser user,
+                           @RequestParam(defaultValue = "1") int page,
+                           @RequestParam(defaultValue = "10") int size) {
+        return Response.ok(postService.manageGoods(user.getOpenId(), page, size));
+    }
+
+    @PutMapping("/manage/{id}")
+    public Response edit(@PathVariable int id, @RequestBody PostExample post, @JWT(required = true) JWTUser user) {
+        postService.updateGoods(id, user.getOpenId(), post);
+        return Response.ok();
+    }
+
+    @PutMapping("/manage/{id}/status")
+    public Response status(@PathVariable int id, @RequestBody Map<String, Boolean> body, @JWT(required = true) JWTUser user) {
+        postService.setSelling(id, user.getOpenId(), body.get("isSelling"));
+        return Response.ok();
+    }
 
 }

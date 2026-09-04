@@ -1,0 +1,53 @@
+<view class="screen safe-bottom">
+  <view class="notice">确认交易信息后提交订单，可在订单详情完成模拟支付</view>
+  <view class="empty" wx:if="{{error}}">{{error}}</view>
+  <block wx:if="{{goods}}">
+    <view class="card content-head">
+      <image class="order-cover" src="{{cover}}" mode="aspectFill" />
+      <view class="grow">
+        <view class="bold">{{goods.name}}</view>
+        <view class="price top-space">¥ {{goods.price}}</view>
+      </view>
+    </view>
+    <view class="card">
+      <view class="section-title">交易方式</view>
+      <radio-group bindchange="changeMethod">
+        <label class="check-row" wx:for="{{methods}}" wx:key="id">
+          <text>{{item.name}}</text>
+          <radio value="{{item.id}}" checked="{{method===item.id}}" color="#d2a824" />
+        </label>
+      </radio-group>
+    </view>
+    <view class="card" wx:if="{{method==='EXPRESS'}}" bindtap="chooseAddress">
+      <view class="row between">
+        <view class="grow">
+          <view class="bold">{{address?address.name+' '+address.phone:'＋ 添加收货地址'}}</view>
+          <view class="muted top-space">{{address?address.region+' '+address.detail:'请选择用于本次订单的收货地址'}}</view>
+        </view>
+        <text class="chevron">›</text>
+      </view>
+    </view>
+    <view class="notice" wx:else>提交订单后，请通过“聊一聊”与卖家确认见面或自提地点。</view>
+    <view class="card">
+      <view class="list-row">
+        <text class="muted">宝贝金额</text>
+        <text>¥ {{goods.price}}</text>
+      </view>
+      <view class="list-row">
+        <text class="muted">运费</text>
+        <text>¥ {{postage}}</text>
+      </view>
+      <view class="list-row">
+        <text class="bold">合计</text>
+        <text class="price">¥ {{total}}</text>
+      </view>
+    </view>
+  </block>
+</view>
+<view class="bottom-bar">
+  <view class="grow">
+    <text class="small">合计 </text>
+    <text class="price">¥ {{total}}</text>
+  </view>
+  <button class="btn" bindtap="submit" disabled="{{busy||!goods||error}}" loading="{{busy}}">提交订单</button>
+</view>

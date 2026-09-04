@@ -1,1 +1,4 @@
-{}
+{
+  "navigationBarTitleText": "聊一聊",
+  "enablePullDownRefresh": true
+}

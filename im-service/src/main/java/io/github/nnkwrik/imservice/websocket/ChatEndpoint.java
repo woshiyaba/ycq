@@ -131,10 +131,12 @@ public class ChatEndpoint {
             return false;
         } else {
             try {
-                session.getBasicRemote().sendText(JsonUtil.toJson(response));
+                synchronized (session) {
+                    session.getBasicRemote().sendText(JsonUtil.toJson(response));
+                }
                 log.info("消息发送成功:openId = [{}],消息内容 = [{}]", openId, response);
                 return true;
-            } catch (IOException e) {
+            } catch (IOException | IllegalStateException e) {
                 log.info("消息发送失败:openId = [{}],消息内容 = [{}]", openId, response);
                 e.printStackTrace();
                 return false;

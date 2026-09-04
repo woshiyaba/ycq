@@ -1,0 +1,39 @@
+<view class="screen safe-bottom">
+  <view wx:if="{{error}}" class="notice error-text">{{error}}</view>
+  <view class="card">
+    <view class="list-row" bindtap="avatar">
+      <text class="bold">头像</text>
+      <view class="row gap">
+        <image wx:if="{{profile.avatarUrl}}" class="avatar" src="{{profile.avatarUrl}}" />
+        <view wx:else class="avatar avatar-fallback">圈</view>
+        <text class="chevron">{{uploading?'…':'›'}}</text>
+      </view>
+    </view>
+    <view class="field field-row">
+      <view class="label">昵称</view>
+      <input value="{{profile.nickName}}" data-field="nickName" bindinput="input" maxlength="30"
+        placeholder="请输入昵称" />
+    </view>
+    <view class="field field-row">
+      <view class="label">性别</view>
+      <picker range="{{genderNames}}" value="{{profile.gender||0}}" bindchange="gender">
+        <view>{{genderNames[profile.gender||0]}} ›</view>
+      </picker>
+    </view>
+    <view class="field field-row">
+      <view class="label">所在地区</view>
+      <input value="{{profile.region}}" data-field="region" bindinput="input" maxlength="64"
+        placeholder="运城市 盐湖区" />
+    </view>
+    <view class="field">
+      <view class="label">个人简介</view>
+      <textarea class="textarea" value="{{profile.bio}}" data-field="bio" bindinput="input" maxlength="300"
+        placeholder="介绍一下自己吧" auto-height />
+    </view>
+  </view>
+  <button class="btn secondary top-space" bindtap="logout">退出登录</button>
+</view>
+<view class="bottom-bar">
+  <button class="btn grow" bindtap="save" loading="{{busy}}" disabled="{{busy||uploading||error}}">保存资料
+  </button>
+</view>

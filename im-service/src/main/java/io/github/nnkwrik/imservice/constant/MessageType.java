@@ -20,4 +20,7 @@ public class MessageType {
 
     /*未读消息数,用于更新badge*/
     public static final int UNREAD_NUM = 4;
+
+    /*服务器已保存消息的确认，只允许服务端发送*/
+    public static final int MESSAGE_ACK = 5;
 }

@@ -1,23 +1,25 @@
 package io.github.nnkwrik.imservice.service.impl;
 
 import io.github.nnkwrik.common.dto.Response;
-import io.github.nnkwrik.common.exception.GlobalException;
-import io.github.nnkwrik.common.util.JsonUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.github.nnkwrik.imservice.constant.MessageType;
 import io.github.nnkwrik.imservice.dao.ChatMapper;
 import io.github.nnkwrik.imservice.model.vo.WsMessage;
 import io.github.nnkwrik.imservice.redis.RedisClient;
 import io.github.nnkwrik.imservice.service.WebSocketService;
+import io.github.nnkwrik.imservice.service.ChatAccess;
 import io.github.nnkwrik.imservice.websocket.ChatEndpoint;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Collections;
+import java.io.IOException;
 import java.util.stream.Collectors;
 
 /**
@@ -47,15 +49,17 @@ public class WebSocketServiceImpl implements WebSocketService {
     public int getUnreadCount(String userId) {
         //去查userId参与的chat的id
         List<Integer> chatIdList = chatMapper.getChatIdsByUser(userId);
-        List<List<WsMessage>> unreadChats = redisClient.multiGet(chatIdList.stream()
-                .map(id -> id + "")
-                .collect(Collectors.toList()));
+        if (chatIdList.isEmpty()) return 0;
+        List<List<WsMessage>> unreadChats;
+        synchronized (redisClient) {
+            unreadChats = redisClient.multiGet(chatIdList.stream().map(String::valueOf).collect(Collectors.toList()));
+        }
 
         //过滤自己发送的
         long unreadCount = unreadChats.stream()
                 .filter(messageList -> !ObjectUtils.isEmpty(messageList))
                 .flatMap(messageList -> messageList.stream())
-                .filter(message -> message.getReceiverId().equals(userId))
+                .filter(message -> userId.equals(message.getReceiverId()))
                 .count();
 
         return Math.toIntExact(unreadCount);
@@ -69,28 +73,46 @@ public class WebSocketServiceImpl implements WebSocketService {
      */
     @Override
     public void OnMessage(String senderId, String rawData) {
-        WsMessage message = null;
+        WsMessage message;
+        String clientMessageId = null;
         try {
-            message = castWsMessage(rawData);
-        } catch (GlobalException e) {
-            chatEndpoint.sendMessage(senderId, Response.fail(e.getErrno(), e.getErrmsg()));
+            if (rawData == null || rawData.length() > 20000) throw new IllegalArgumentException("消息格式不正确");
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(rawData);
+            if (node != null && node.hasNonNull("clientMessageId")) clientMessageId = node.get("clientMessageId").asText();
+            message = mapper.treeToValue(node, WsMessage.class);
+            if (message == null || message.getChatId() == null || message.getChatId() <= 0) {
+                throw new IllegalArgumentException("请指定有效会话");
+            }
+            ChatAccess.validateMessage(chatMapper.getChatById(message.getChatId()), senderId, message);
+            message.setMessageBody(message.getMessageBody().trim());
+            message.setSendTime(new Date(System.currentTimeMillis() / 1000 * 1000));
+        } catch (IOException e) {
+            reject(senderId, Response.MESSAGE_FORMAT_IS_WRONG, "消息格式不正确", clientMessageId);
+            return;
+        } catch (IllegalArgumentException e) {
+            reject(senderId, Response.MESSAGE_IS_INCOMPLETE, e.getMessage(), clientMessageId);
+            return;
+        } catch (RuntimeException e) {
+            log.error("读取聊天会话失败", e);
+            reject(senderId, Response.UPDATE_HISTORY_TO_SQL_FAIL, "会话读取失败，请重试", clientMessageId);
             return;
         }
-        if (!senderId.equals(message.getSenderId())) {
-            String msg = "发送者与ws连接中的不一致,消息发送失败";
-            log.info(msg);
-            chatEndpoint.sendMessage(senderId, Response.fail(Response.SENDER_AND_WS_IS_NOT_MATCH, msg));
-            return;
-        }
-
-
-        //作为未读消息添加到redis
-        updateRedis(message);
-
-        if (message.getMessageType() == MessageType.FIRST_CHAT) {
-            //首次发送,设为双方可见
+        try {
             chatMapper.showToBoth(message.getChatId());
+            updateRedis(message);
+        } catch (RuntimeException e) {
+            log.error("保存聊天消息失败，chatId={}", message.getChatId(), e);
+            reject(senderId, Response.UPDATE_HISTORY_TO_SQL_FAIL, "消息保存失败，请重试", clientMessageId);
+            return;
         }
+
+        WsMessage ack = new WsMessage();
+        ack.setMessageType(MessageType.MESSAGE_ACK);
+        ack.setClientMessageId(clientMessageId);
+        ack.setChatId(message.getChatId());
+        ack.setSendTime(message.getSendTime());
+        chatEndpoint.sendMessage(senderId, Response.ok(ack));
 
         //如果接收方在线,转发ws消息到接收方
         if (chatEndpoint.hasConnect(message.getReceiverId())) {
@@ -100,37 +122,18 @@ public class WebSocketServiceImpl implements WebSocketService {
     }
 
     private void updateRedis(WsMessage message) {
-        List<WsMessage> unreadList = redisClient.get(message.getChatId() + "");
-        if (unreadList == null) {
-            unreadList = new ArrayList<>();
+        synchronized (redisClient) {
+            List<WsMessage> current = redisClient.get(message.getChatId() + "");
+            List<WsMessage> unreadList = current == null ? new ArrayList<>() : new ArrayList<>(current);
+            unreadList.add(message);
+            redisClient.set(message.getChatId() + "", unreadList);
         }
-        unreadList.add(message);
-        redisClient.set(message.getChatId() + "", unreadList);
     }
 
-
-    private WsMessage castWsMessage(String rawData) throws GlobalException {
-        WsMessage wsMessage = JsonUtil.fromJson(rawData, WsMessage.class);
-        if (wsMessage == null) {
-            String msg = "消息反序列化失败";
-            log.info(msg);
-            throw new GlobalException(Response.MESSAGE_FORMAT_IS_WRONG, msg);
-        }
-        if (ObjectUtils.isEmpty(wsMessage.getChatId()) ||
-                StringUtils.isEmpty(wsMessage.getSenderId()) ||
-                StringUtils.isEmpty(wsMessage.getReceiverId()) ||
-                ObjectUtils.isEmpty(wsMessage.getGoodsId()) ||
-                ObjectUtils.isEmpty(wsMessage.getMessageType()) ||
-                ObjectUtils.isEmpty(wsMessage.getMessageBody())) {
-            String msg = "消息不完整";
-            log.info(msg);
-            throw new GlobalException(Response.MESSAGE_IS_INCOMPLETE, msg);
-        }
-
-        if (wsMessage.getSendTime() == null) {
-            wsMessage.setSendTime(new Date());
-        }
-        return wsMessage;
+    private void reject(String senderId, int errno, String reason, String clientMessageId) {
+        Response response = Response.fail(errno, reason);
+        if (clientMessageId != null) response.setData(Collections.singletonMap("clientMessageId", clientMessageId));
+        chatEndpoint.sendMessage(senderId, response);
     }
 
 }

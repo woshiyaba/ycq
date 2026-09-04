@@ -29,16 +29,18 @@ public interface UserMapper {
     void register(User user);
 
 
-    @Select("select open_id, nick_name, avatar_url, register_time\n" +
-            "from user\n" +
-            "where open_id = #{openId}")
+    @Select("select u.open_id, coalesce(p.nick_name,u.nick_name) nick_name,\n" +
+            "coalesce(p.avatar_url,u.avatar_url) avatar_url, u.register_time\n" +
+            "from user u left join user_profile p on p.open_id=u.open_id\n" +
+            "where u.open_id = #{openId}")
     User getSimpleUser(@Param("openId") String openId);
 
 
     @Select("<script>\n" +
-            "select open_id, nick_name, avatar_url, register_time\n" +
-            "from user\n" +
-            "where open_id in" +
+            "select u.open_id, coalesce(p.nick_name,u.nick_name) nick_name,\n" +
+            "coalesce(p.avatar_url,u.avatar_url) avatar_url, u.register_time\n" +
+            "from user u left join user_profile p on p.open_id=u.open_id\n" +
+            "where u.open_id in" +
             "    <foreach item='item' collection='openIdList' open='(' separator=',' close=')'>\n" +
             "    #{item}\n" +
             "    </foreach>\n" +

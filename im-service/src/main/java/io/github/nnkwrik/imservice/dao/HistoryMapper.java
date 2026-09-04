@@ -16,6 +16,8 @@ import java.util.List;
  */
 @Mapper
 public interface HistoryMapper {
+    @Select("select exists(select 1 from history where chat_id=#{chatId})")
+    boolean hasHistory(int chatId);
     /**
      * 添加一条聊天记录
      *
@@ -51,7 +53,7 @@ public interface HistoryMapper {
      * @return
      */
     @Select("<script>\n" +
-            "select history.chat_id, history.message_type, history.message_body, history.send_time, chat.u1, chat.u2, chat.goods_id\n" +
+            "select history.chat_id, history.u1_to_u2, history.message_type, history.message_body, history.send_time, chat.u1, chat.u2, chat.goods_id, chat.post_id\n" +
             "from history\n" +
             "       inner join (select chat_id, max(send_time) as max_time\n" +
             "                   from history\n" +
@@ -68,10 +70,11 @@ public interface HistoryMapper {
             "                   </if>" +
             "                   ((u1 = #{user_id} and show_to_u1 = true) or (u2 = #{user_id} and show_to_u2 = true)))\n" +
             "                   group by chat_id\n" +
-            "                   HAVING max_time &lt; #{offset_time,jdbcType=TIMESTAMP}) as foo\n" +
+            "                   <if test=\"offset_time != null\">HAVING max_time &lt; #{offset_time,jdbcType=TIMESTAMP}</if>) as foo\n" +
             "         on foo.chat_id = history.chat_id and foo.max_time = history.send_time\n" +
             "       inner join chat on history.chat_id = chat.id\n" +
-            "order by send_time desc" +
+            "where history.id=(select max(h.id) from history h where h.chat_id=history.chat_id and h.send_time=history.send_time)\n" +
+            "order by send_time desc, history.id desc" +
             "</script>")
     List<HistoryExample> getLastReadChat(@Param("unreadChatIds") List<Integer> unreadChatIds,
                                          @Param("user_id") String userId,
@@ -83,7 +86,7 @@ public interface HistoryMapper {
      *
      * @return
      */
-    @Select("select history.chat_id, history.message_type, history.message_body, history.send_time, chat.u1, chat.u2, chat.goods_id\n" +
+    @Select("select history.chat_id, history.u1_to_u2, history.message_type, history.message_body, history.send_time, chat.u1, chat.u2, chat.goods_id, chat.post_id\n" +
             "from history\n" +
             "       inner join (select chat_id, max(send_time) as max_time\n" +
             "                   from history\n" +
@@ -100,10 +103,14 @@ public interface HistoryMapper {
      * @param chat_id
      * @return
      */
-    @Select("select chat_id,u1_to_u2, message_type, message_body, send_time\n" +
+    @Select("select id, chat_id,u1_to_u2, message_type, message_body, send_time\n" +
             "from history\n" +
-            "where chat_id = #{chat_id} and send_time < #{offset_time,jdbcType=TIMESTAMP} order by send_time desc")
+            "where chat_id = #{chat_id} and send_time < #{offset_time,jdbcType=TIMESTAMP} order by send_time desc, id desc")
     List<History> getChatHistory(@Param("chat_id") int chatId,@Param("offset_time") Date offsetTime);
+
+    @Select("select id, chat_id, u1_to_u2, message_type, message_body, send_time from history "
+            + "where chat_id=#{chatId} and send_time >= #{start} and send_time < #{end} order by send_time, id")
+    List<History> getChatHistoryAtSecond(@Param("chatId") int chatId, @Param("start") Date start, @Param("end") Date end);
 
 
 }

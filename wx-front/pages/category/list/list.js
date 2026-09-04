@@ -1,137 +1,86 @@
-var util = require('../../../utils/util.js');
-var api = require('../../../config/api.js');
-
+const util = require('../../../utils/util.js');
 Page({
   data: {
-    // text:"这是一个页面"
-    navList: [],
-    goodsList: [],
     id: 0,
-    currentCategory: {},
-    scrollLeft: 0,
-    scrollTop: 0,
-    scrollHeight: 0,
+    categories: [],
+    goods: [],
     page: 1,
-    size: 10
+    loading: false,
+    hasMore: true,
+    error: ''
   },
-  onLoad: function(options) {
-    // 页面初始化 options为页面跳转所带来的参数
-    var that = this;
-    if (options.id) {
-      that.setData({
-        id: parseInt(options.id)
-      });
-    }
-
-    wx.getSystemInfo({
-      success: function(res) {
-        that.setData({
-          scrollHeight: res.windowHeight
-        });
-      }
-    });
-
-
-    this.getCategoryInfo();
-
-  },
-  getCategoryInfo: function() {
-    let that = this;
-    util.request(api.GoodsCategory + "/" + this.data.id)
-      .then(function(res) {
-
-        if (res.errno == 0) {
-          that.setData({
-            navList: res.data.brotherCategory,
-            goodsList: res.data.goodsList
-          });
-
-          //nav位置
-          let currentIndex = 0;
-          let navListCount = that.data.navList.length;
-          for (let i = 0; i < navListCount; i++) {
-            currentIndex += 1;
-            if (that.data.navList[i].id == that.data.id) {
-              break;
-            }
-          }
-          if (currentIndex > navListCount / 2 && navListCount > 5) {
-            that.setData({
-              scrollLeft: currentIndex * 60
-            });
-          }
-          //that.getGoodsList();
-
-        } else {
-          //显示错误信息
-        }
-
-      });
-  },
-  onReady: function() {
-    // 页面渲染完成
-  },
-  onShow: function() {
-    // 页面显示
-    console.log(1);
-  },
-  onHide: function() {
-    // 页面隐藏
-  },
-  getGoodsList: function() {
-    var that = this;
-
-    util.request(api.GoodsList + "/" + that.data.id, {
-        page: that.data.page,
-        size: that.data.size
-      })
-      .then(function(res) {
-        that.setData({
-          goodsList: that.data.goodsList.concat(res.data),
-        });
-      });
-  },
-  onUnload: function() {
-    // 页面关闭
-  },
-  switchCate: function(event) {
-    if (this.data.id == event.currentTarget.dataset.id) {
-      return false;
-    }
-    var that = this;
-    var clientX = event.detail.x;
-    var currentTarget = event.currentTarget;
-    if (clientX < 60) {
-      that.setData({
-        scrollLeft: currentTarget.offsetLeft - 60
-      });
-    } else if (clientX > 330) {
-      that.setData({
-        scrollLeft: currentTarget.offsetLeft
-      });
-    }
+  onLoad(options) {
     this.setData({
-      id: event.currentTarget.dataset.id,
-      page:1,
-      goodsList:[]
+      id: Number(options.id)
     });
-
-    this.getGoodsList();
+    this.initial();
   },
-  onPullDownRefresh: function() {
-    console.log("上拉刷新")
-    this.onLoad()
-    setTimeout(function callback() {
-      wx.stopPullDownRefresh()
-    }, 500)
-
-
-  },
-  onReachBottom: function() {
-    console.log("拉到底")
+  async initial() {
     this.setData({
-      page: this.data.page + 1
-    })
-    this.getGoodsList()
+      loading: true,
+      error: ''
+    });
+    try {
+      const data = await util.api('/goods/category/index/' + this.data.id);
+      this.setData({
+        categories: data.brotherCategory || [],
+        goods: data.goodsList || [],
+        page: 2,
+        hasMore: (data.goodsList || []).length >= 10
+      });
+    } catch (error) {
+      this.setData({
+        error: error.message
+      });
+    } finally {
+      this.setData({
+        loading: false
+      });
+      wx.stopPullDownRefresh();
+    }
   },
-})
+  async load() {
+    if (this.data.loading || !this.data.hasMore) return;
+    this.setData({
+      loading: true
+    });
+    try {
+      const data = await util.api('/goods/category/' + this.data.id, {
+        page: this.data.page,
+        size: 10
+      });
+      this.setData({
+        goods: this.data.goods.concat(data || []),
+        page: this.data.page + 1,
+        hasMore: (data || []).length === 10
+      });
+    } catch (error) {
+      util.showErrorToast(error);
+    } finally {
+      this.setData({
+        loading: false
+      });
+    }
+  },
+  choose(e) {
+    if (this.data.loading) return;
+    this.setData({
+      id: e.currentTarget.dataset.id,
+      goods: [],
+      page: 1,
+      hasMore: true
+    });
+    this.load();
+  },
+  openGoods(e) {
+    wx.navigateTo({
+      url: '/pages/goods/goods?id=' + e.currentTarget.dataset.id
+    });
+  },
+  onPullDownRefresh() {
+    this.initial();
+  },
+  onReachBottom() {
+    this.load();
+  }
+});

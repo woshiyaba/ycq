@@ -1,46 +1,61 @@
-<view class="container">
-
-  <view class='top'>
-    <view class='msg'> 如遇到以下情况可能是诈骗行为：</view>
-    <view class="item-group">
-      <view class="item">1.宝贝价格异常低</view>
-      <view class="item">2.卖家要求QQ沟通</view>
-      <view class="item">3.卖家要求直接汇款</view>
-    </view>
-  </view>
-
-
-  <view class="result-list" wx:if="{{chatList.length > 0}}">
-
-    <view class="chat" bindtap='navForm' data-id='{{item.lastChat.chatId}}' data-index='{{index}}' wx:for="{{chatList}}" wx:key="{{index}}">
-      <view class="item">
-        <view class='avatar-item'>
-          <image class="avatar" mode='aspectFill' src="{{item.otherSide.avatarUrl}}"></image>
-
-          <view class='badge' wx:if="{{item.unreadCount}}">
-            <text class=' num'>{{item.unreadCount}}</text>
-          </view>
-        </view>
-        <view class="info">
-          <view class="t">
-            <text class="name">{{item.otherSide.nickName}}</text>
-          </view>
-          <view class="time">{{item.lastChat.sendTime}}</view>
-          <view class="b">
-            <text class="chat-msg">{{item.lastChat.messageBody}}</text>
-          </view>
-        </view>
-        <image class="img" mode='aspectFill' src="{{item.goods.primaryPicUrl}}"></image>
+<view class="screen">
+  <view class="row between">
+    <view class="tabs">
+      <view class="tab {{tab==='chat'?'active':''}}" bindtap="switchTab" data-tab="chat">私信</view>
+      <view class="tab {{tab==='notice'?'active':''}}" bindtap="switchTab" data-tab="notice">互动通知 <text
+          class="badge" wx:if="{{unreadCount}}">{{unreadCount}}</text>
       </view>
     </view>
-
+    <text class="muted-link" bindtap="readAll" wx:if="{{logged}}">全部已读</text>
   </view>
-  <view class="result-empty" wx:else>
-    <view class="c">
-      <image src="https://i.postimg.cc/v8KbQ4Sx/cry.png" />
-      <text>您还没有聊天记录</text>
+  <view class="notice">友善沟通，让每一次相遇都更美好。</view>
+  <view class="empty" wx:if="{{!logged}}">
+    <view class="empty-icon">◌</view>登录后查看消息<button class="btn top-space" bindtap="login">去登录</button>
+  </view>
+  <block wx:elif="{{tab==='chat'}}">
+    <view class="card chat-row" wx:for="{{chats}}" wx:key="lastChat.chatId" bindtap="openChat"
+      data-chat="{{item}}">
+      <view class="chat-avatar">
+        <image wx:if="{{item.otherSide.avatarUrl}}" class="avatar" src="{{item.otherSide.avatarUrl}}" />
+        <view wx:else class="avatar avatar-fallback">圈</view>
+        <text wx:if="{{item.unreadCount}}" class="badge">{{item.unreadCount>99?'99+':item.unreadCount}}</text>
+      </view>
+      <view class="grow">
+        <view class="row between">
+          <text class="bold">{{item.otherSide.nickName}}</text>
+          <text class="muted chat-time">{{item.lastChat.sendTime}}</text>
+        </view>
+        <view class="chat-preview">{{item.lastChat.messageBody}}</view>
+        <view class="muted" wx:if="{{item.content}}">{{item.content.kind==='RECRUITMENT'?'招聘':'帖子'}} ·
+          {{item.content.title}}
+        </view>
+      </view>
+      <image wx:if="{{item.goods.primaryPicUrl||item.content.primaryPicUrl}}" class="chat-cover"
+        src="{{item.goods.primaryPicUrl||item.content.primaryPicUrl}}" mode="aspectFill" />
     </view>
-  </view>
-
-
+    <view class="empty" wx:if="{{!chats.length&&!loading}}">{{error||'还没有私信，去和圈友聊一聊吧'}}</view>
+  </block>
+  <block wx:else>
+    <view class="card" wx:for="{{notifications}}" wx:key="index" bindtap="openNotification"
+      data-item="{{item}}">
+      <view class="content-head">
+        <image wx:if="{{item.author.avatarUrl}}" class="avatar" src="{{item.author.avatarUrl}}" />
+        <view wx:else class="avatar avatar-fallback">圈</view>
+        <view class="grow">
+          <view class="row between">
+            <text class="bold">{{item.author.nickName}}</text>
+            <text class="badge" wx:if="{{!item.readAt}}">新</text>
+          </view>
+          <view class="muted">{{item.createdAt}}</view>
+        </view>
+      </view>
+      <view class="body-text top-space">{{item.body||item.content}}</view>
+      <view class="notice top-space" style="margin-bottom:0">
+        {{item.source==='GOODS'?'好物':item.postKind==='RECRUITMENT'?'招聘':'帖子'}}：{{item.postTitle||item.goodsTitle||item.goodsName}}
+        ›
+      </view>
+    </view>
+    <view class="empty" wx:if="{{!notifications.length&&!loading}}">{{error||'暂时没有新的互动消息'}}</view>
+  </block>
+  <view class="loading" wx:if="{{loading}}">正在加载…</view>
 </view>

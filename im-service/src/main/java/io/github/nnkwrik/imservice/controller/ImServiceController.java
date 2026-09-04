@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Date;
 
 /**
  * 对于内部服务开放的api
@@ -39,12 +42,30 @@ public class ImServiceController {
      * @return
      */
     @PostMapping("/createChat/{goodsId}/{senderId}/{receiverId}")
+    @Transactional
     public Response<Integer> createChat(@PathVariable("goodsId") int goodsId,
                                         @PathVariable("senderId") String senderId,
                                         @PathVariable("receiverId") String receiverId) {
-        //u1 < u2
+        if (goodsId <= 0) throw new IllegalArgumentException("商品不存在");
+        return create(goodsId, 0, senderId, receiverId);
+    }
+
+    @PostMapping("/createContentChat/{postId}/{senderId}/{receiverId}")
+    @Transactional
+    public Response<Integer> createContentChat(@PathVariable int postId, @PathVariable String senderId,
+                                               @PathVariable String receiverId) {
+        if (postId <= 0) throw new IllegalArgumentException("内容不存在");
+        return create(0, postId, senderId, receiverId);
+    }
+
+    private Response<Integer> create(int goodsId, int postId, String senderId, String receiverId) {
+        if (senderId == null || receiverId == null || senderId.trim().isEmpty() || receiverId.trim().isEmpty()
+                || senderId.length() > 32 || receiverId.length() > 32 || senderId.equals(receiverId)) {
+            throw new IllegalArgumentException("请选择有效的聊天对象");
+        }
         Chat chat = new Chat();
         chat.setGoodsId(goodsId);
+        chat.setPostId(postId);
         if (senderId.compareTo(receiverId) < 0) {
             chat.setU1(senderId);
             chat.setU2(receiverId);
@@ -56,17 +77,15 @@ public class ImServiceController {
             chat.setShowToU1(false);
             chat.setShowToU2(true);
         }
-        //确认是否已存在对话
-        Integer chatId = chatMapper.getChatIdByChat(chat);
-        if (chatId == null) {
-            chatMapper.addChat(chat);
-            chatId = chat.getId();
-
-            //创建一条聊天记录,让展示消息列表时能取得到
+        // The unique-key upsert holds this chat's row lock until the initial history is committed.
+        chatMapper.addChat(chat);
+        Integer chatId = chat.getId();
+        if (!historyMapper.hasHistory(chatId)) {
             History history = new History();
             history.setChatId(chatId);
-            history.setU1ToU2(senderId.compareTo(receiverId) < 0 ? true : false);
+            history.setU1ToU2(senderId.compareTo(receiverId) < 0);
             history.setMessageType(MessageType.ESTABLISH_CHAT);
+            history.setSendTime(new Date());
             historyMapper.addHistory(history);
         }
 

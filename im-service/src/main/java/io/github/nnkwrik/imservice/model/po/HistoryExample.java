@@ -11,4 +11,5 @@ public class HistoryExample extends History {
     private String u1;
     private String u2;
     private Integer goodsId;
+    private Integer postId;
 }

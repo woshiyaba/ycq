@@ -1,0 +1,19 @@
+<import src="../../../templates/cards.wxml" />
+<view class="screen safe-bottom">
+  <view class="row between section-title">
+    <text>{{kind==='RECRUITMENT'?'招聘信息':'圈友动态'}}</text>
+    <text class="muted">{{mode==='mine'?'我发布的':mode==='favorites'?'我收藏的':'记录生活，分享身边事'}}</text>
+  </view>
+  <block wx:for="{{entries}}" wx:key="id">
+    <template is="{{kind==='RECRUITMENT'?'job':'entry'}}" data="{{item: item}}" />
+  </block>
+  <view class="empty" wx:if="{{!entries.length&&!loading}}">
+    <view class="empty-icon">◌</view>这里还空着，去发现更多精彩吧
+  </view>
+  <view class="empty" wx:if="{{error}}" bindtap="load">{{error}} · 点击重试</view>
+  <view class="loading" wx:if="{{loading}}">正在加载…</view>
+  <view class="loading" wx:if="{{!hasMore&&entries.length}}">已经到底啦</view>
+</view>
+<view class="bottom-bar">
+  <button class="btn grow" bindtap="publish">{{kind==='RECRUITMENT'?'＋ 发布招聘':'＋ 分享新鲜事'}}</button>
+</view>

@@ -1,0 +1,56 @@
+<template name="entry">
+  <view class="card" bindtap="openEntry" data-id="{{item.id}}">
+    <view class="content-head">
+      <image wx:if="{{item.author.avatarUrl}}" class="avatar" src="{{item.author.avatarUrl}}" />
+      <view wx:else class="avatar avatar-fallback">圈</view>
+      <view class="grow">
+        <view class="bold">{{item.author.nickName || '运城圈用户'}}</view>
+        <view class="muted">{{item.region || '运城'}} · {{item.createdAt}}</view>
+      </view>
+      <text wx:if="{{item.status==='OFFLINE'}}" class="pill gray">已下架</text>
+    </view>
+    <view class="entry-title">{{item.title}}</view>
+    <view class="entry-body">{{item.body}}</view>
+    <view class="entry-images {{item.images.length===1?'single':''}}" wx:if="{{item.images.length}}">
+      <image wx:for="{{item.images}}" wx:for-item="url" wx:key="*this" wx:if="{{index<3}}" class="entry-image"
+        src="{{url}}" mode="aspectFill" />
+    </view>
+    <view class="entry-footer">
+      <text>♡ {{item.likeCount || 0}} 喜欢</text>
+      <text>◌ {{item.commentCount || 0}} 留言</text>
+      <text class="grow"></text>
+      <text>查看详情 ›</text>
+    </view>
+  </view>
+</template>
+<template name="job">
+  <view class="card job-card" bindtap="openEntry" data-id="{{item.id}}">
+    <view class="row between gap">
+      <view class="job-title grow">{{item.title}}</view>
+      <view class="price">{{item.salaryLabel}}</view>
+    </view>
+    <view class="row wrap top-space">
+      <text class="pill">{{item.job.workType==='PART_TIME'?'兼职':'全职'}}</text>
+      <text class="pill gray">{{item.job.industry || '不限行业'}}</text>
+      <text class="pill gray" wx:for="{{item.job.benefits}}" wx:key="*this">{{item}}</text>
+    </view>
+    <view class="muted top-space">{{item.region || '运城'}} · {{item.job.address}}</view>
+    <view class="divider"></view>
+    <view class="row between">
+      <text class="small">{{item.job.company || item.author.nickName}}</text>
+      <text class="muted">{{item.status==='OFFLINE'?'已下架':'正在招聘'}} ›</text>
+    </view>
+  </view>
+</template>
+<template name="goods">
+  <view class="goods-card" bindtap="openGoods" data-id="{{item.id}}">
+    <image class="goods-cover" src="{{item.primaryPicUrl}}" mode="aspectFill" />
+    <view class="goods-copy">
+      <view class="goods-title">{{item.name}}</view>
+      <view class="row between">
+        <text class="price">¥ {{item.price}}</text>
+        <text class="muted">{{item.region || '运城'}}</text>
+      </view>
+    </view>
+  </view>
+</template>

@@ -1,93 +1,48 @@
-var app = getApp();
-var api = require('../../config/api.js');
-var util = require('../../utils/util.js');
-var websocket = require('../../services/websocket.js');
-
+const util = require('../../utils/util.js');
+const websocket = require('../../services/websocket.js');
 Page({
-
-  /**
-   * 页面的初始数据
-   */
   data: {
-    userInfo: app.globalData.userInfo,
-    hasUserInfo: false,
-    canIUse: wx.canIUse('button.open-type.getUserInfo'),
-    load: false
+    busy: false,
+    logged: false,
+    error: ''
   },
-
-  startLogin: function(e) {
-    console.log(e);
+  async startLogin(e) {
+    if (this.data.busy) return;
+    if (!e.detail || e.detail.errMsg && e.detail.errMsg.indexOf('fail') >= 0) {
+      util.showErrorToast('需要微信授权后才能登录');
+      return;
+    }
     this.setData({
-      load: true
-    })
-    util.backendLogin(e.detail).then((userInfo) => {
-      this.setData({
-        userInfo: userInfo,
-        hasUserInfo: true
-      })
-      websocket.wsConnect()
+      busy: true,
+      error: ''
     });
+    try {
+      await util.backendLogin(e.detail);
+      this.setData({
+        logged: true
+      });
+      websocket.wsConnect().catch(() => {});
+      const pages = getCurrentPages();
+      if (pages.length > 1) wx.navigateBack();
+      else wx.switchTab({
+        url: '/pages/ucenter/index/index'
+      });
+    } catch (error) {
+      this.setData({
+        error: error.message
+      });
+      util.showErrorToast(error);
+    } finally {
+      this.setData({
+        busy: false
+      });
+    }
   },
-
-  goback: function() {
-    wx.navigateBack({
-      delta: 1
-    })
-  },
-
-  /**
-   * 生命周期函数--监听页面加载
-   */
-  onLoad: function(options) {
-
-  },
-
-  /**
-   * 生命周期函数--监听页面初次渲染完成
-   */
-  onReady: function() {
-
-  },
-
-  /**
-   * 生命周期函数--监听页面显示
-   */
-  onShow: function() {
-
-  },
-
-  /**
-   * 生命周期函数--监听页面隐藏
-   */
-  onHide: function() {
-
-  },
-
-  /**
-   * 生命周期函数--监听页面卸载
-   */
-  onUnload: function() {
-
-  },
-
-  /**
-   * 页面相关事件处理函数--监听用户下拉动作
-   */
-  onPullDownRefresh: function() {
-
-  },
-
-  /**
-   * 页面上拉触底事件的处理函数
-   */
-  onReachBottom: function() {
-
-  },
-
-  /**
-   * 用户点击右上角分享
-   */
-  onShareAppMessage: function() {
-
+  back() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) wx.navigateBack();
+    else wx.switchTab({
+      url: '/pages/index/index'
+    });
   }
-})
+});

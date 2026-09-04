@@ -1,0 +1,36 @@
+<view class="screen">
+  <view class="tabs">
+    <view class="tab {{status===''?'active':''}}" bindtap="switchStatus" data-status="">全部</view>
+    <view class="tab {{status==='PENDING'?'active':''}}" bindtap="switchStatus" data-status="PENDING">待付款
+    </view>
+    <view class="tab {{status==='PAID'?'active':''}}" bindtap="switchStatus" data-status="PAID">待交付</view>
+    <view class="tab {{status==='SHIPPED'?'active':''}}" bindtap="switchStatus" data-status="SHIPPED">待收货
+    </view>
+    <view class="tab {{status==='COMPLETED'?'active':''}}" bindtap="switchStatus" data-status="COMPLETED">已完成
+    </view>
+    <view class="tab {{status==='CANCELLED'?'active':''}}" bindtap="switchStatus" data-status="CANCELLED">已取消
+    </view>
+  </view>
+  <view class="card" wx:for="{{orders}}" wx:key="id" bindtap="open" data-id="{{item.id}}">
+    <view class="row between">
+      <text class="muted">订单 {{item.orderNo}}</text>
+      <text class="status">{{item.statusText}}</text>
+    </view>
+    <view class="content-head top-space">
+      <image class="order-cover" src="{{item.goodsImage}}" mode="aspectFill" />
+      <view class="grow">
+        <view class="bold">{{item.goodsName}}</view>
+        <view class="muted top-space">{{item.deliveryText}}</view>
+      </view>
+      <view class="price">¥ {{item.amount}}</view>
+    </view>
+    <view class="divider"></view>
+    <view class="row between">
+      <text class="muted">{{item.createdAt}}</text>
+      <text class="small link">查看订单 ›</text>
+    </view>
+  </view>
+  <view wx:if="{{!orders.length&&!loading}}" class="empty">{{error||'还没有相关订单'}}</view>
+  <view wx:if="{{loading}}" class="loading">正在加载…</view>
+  <view wx:if="{{hasMore&&!loading&&reviewOnly}}" class="loading" bindtap="load">继续查找待评价订单</view>
+</view>

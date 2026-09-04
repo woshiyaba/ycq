@@ -1,138 +1,131 @@
-var util = require('../../utils/util.js');
-var api = require('../../config/api.js');
-
-var app = getApp()
+const util = require('../../utils/util.js');
+const content = require('../../utils/content.js');
 Page({
   data: {
-    keywrod: '',
-    searchStatus: false,
-    goodsList: [],
-    helpKeyword: [],
-    historyKeyword: [],
-    defaultKeyword: '输入关键字',
-    hotKeyword: [],
+    keyword: '',
+    kind: 'GOODS',
+    history: [],
+    hot: [],
+    items: [],
     page: 1,
-    size: 10,
+    loading: false,
+    hasMore: true,
+    searched: false,
+    error: ''
   },
-  //事件处理函数
-  closeSearch: function() {
-    wx.navigateBack()
-  },
-  clearKeyword: function() {
+  onLoad(options) {
+    this.keywords();
+    const kind = ['GOODS', 'COMMUNITY', 'RECRUITMENT'].includes(options.kind) ? options.kind : 'GOODS';
+    let keyword = options.keyword || '';
+    try {
+      keyword = decodeURIComponent(keyword);
+    } catch (error) {}
     this.setData({
-      keyword: '',
-      searchStatus: false
+      kind,
+      keyword
+    });
+    if (this.data.keyword.trim()) this.search();
+  },
+  async keywords() {
+    try {
+      const data = await util.api('/search/index');
+      this.setData({
+        history: data.historyKeywordList || [],
+        hot: data.hotKeywordList || []
+      });
+    } catch (error) {}
+  },
+  input(e) {
+    this.setData({
+      keyword: e.detail.value
     });
   },
-  onLoad: function() {
-    this.getSearchKeyword();
+  choose(e) {
+    this.setData({
+      keyword: e.currentTarget.dataset.keyword
+    });
+    this.search();
   },
-
-  getSearchKeyword() {
-    let that = this;
-    util.request(api.SearchIndex).then(function(res) {
-      if (res.errno === 0) {
-        that.setData({
-          historyKeyword: res.data.historyKeywordList,
-          hotKeyword: res.data.hotKeywordList
+  switchKind(e) {
+    if (this.data.loading) return;
+    this.setData({
+      kind: e.currentTarget.dataset.kind
+    });
+    if (this.data.keyword.trim()) this.search();
+  },
+  async search() {
+    if (this.data.loading) return;
+    if (!this.data.keyword.trim()) return;
+    this.setData({
+      items: [],
+      page: 1,
+      hasMore: true,
+      searched: true
+    });
+    await this.load();
+  },
+  async load() {
+    if (this.data.loading || !this.data.hasMore) return;
+    this.setData({
+      loading: true,
+      error: ''
+    });
+    try {
+      if (this.data.kind === 'GOODS') {
+        const items = await util.api('/search/result/' + encodeURIComponent(this.data.keyword.trim()), {
+          page: this.data.page,
+          size: 10
+        });
+        this.setData({
+          items: this.data.items.concat(items || []),
+          page: this.data.page + 1,
+          hasMore: (items || []).length === 10
+        });
+        this.keywords();
+      } else {
+        const data = await util.api('/post/entries', {
+          kind: this.data.kind,
+          keyword: this.data.keyword.trim(),
+          page: this.data.page,
+          size: 10
+        });
+        this.setData({
+          items: this.data.items.concat(content.items(data)),
+          page: this.data.page + 1,
+          hasMore: data.hasMore
         });
       }
-    });
-  },
-
-  inputChange: function(e) {
-
-    this.setData({
-      keyword: e.detail.value,
-      searchStatus: false
-    });
-    this.getHelpKeyword();
-  },
-  //借用淘宝的输入辅助api
-  getHelpKeyword: function() {
-    let that = this;
-    util.request('https://suggest.taobao.com/sug', {
-      code: 'utf-8',
-      q: that.data.keyword
-    }).then(function(res) {
-
-      that.setData({
-        helpKeyword: res.result
+    } catch (error) {
+      this.setData({
+        error: error.message
       });
-
-    });
-  },
-  inputFocus: function() {
-    this.setData({
-      searchStatus: false,
-      goodsList: []
-    });
-
-    if (this.data.keyword) {
-      this.getHelpKeyword();
+    } finally {
+      this.setData({
+        loading: false
+      });
     }
   },
-  clearHistory: function() {
-    let that = this;
-    this.setData({
-      historyKeyword: []
-    })
-
-    util.request(api.SearchClearHistory)
-      .then(function(res) {
-        console.log('清除成功');
+  async clear() {
+    try {
+      await util.api('/search/clearhistory');
+      this.setData({
+        history: []
       });
+    } catch (error) {
+      util.showErrorToast(error);
+    }
   },
-  getGoodsList: function() {
-    let that = this;
-    util.request(api.SearchResult + '/' + that.data.keyword, {
-      page: this.data.page,
-      size: this.data.size
-    }).then(function(res) {
-      if (res.errno === 0) {
-        that.setData({
-          searchStatus: true,
-          categoryFilter: false,
-          goodsList: that.data.goodsList.concat(res.data),
-        });
-      }
-
-      //重新获取关键词
-      that.getSearchKeyword();
+  openGoods(e) {
+    wx.navigateTo({
+      url: '/pages/goods/goods?id=' + e.currentTarget.dataset.id
     });
   },
-  onKeywordTap: function(event) {
-
-    this.getSearchResult(event.target.dataset.keyword);
-
-  },
-  getSearchResult(keyword) {
-    this.setData({
-      keyword: keyword,
-      page: 1,
-      categoryId: 0,
-      goodsList: []
+  openEntry(e) {
+    wx.navigateTo({
+      url: '/pages/content/detail/detail?id=' + e.currentTarget.dataset.id
     });
-
-    this.getGoodsList();
   },
-  onKeywordConfirm(event) {
-    this.getSearchResult(event.detail.value);
-  },
-  onPullDownRefresh: function() {
-    console.log("上拉刷新")
-    this.onLoad()
-    setTimeout(function callback() {
-      wx.stopPullDownRefresh()
-    }, 500)
-
-
-  },
-  onReachBottom: function() {
-    console.log("拉到底")
-    this.setData({
-      page: this.data.page + 1
-    })
-    this.getGoodsList()
-  },
-})
+  onReachBottom() {
+    if (this.data.searched) this.load();
+  }
+});

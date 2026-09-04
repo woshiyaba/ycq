@@ -1,147 +1,150 @@
-var util = require('../../utils/util.js');
-var api = require('../../config/api.js');
-var user = require('../../services/user.js');
-var app = getApp();
+const util = require('../../utils/util.js');
+const content = require('../../utils/content.js');
 Page({
-
-  /**
-   * 页面的初始数据
-   */
   data: {
     userId: '',
+    profile: {},
+    mine: false,
+    kind: 'GOODS',
+    items: [],
     page: 1,
-    size: 10000,
-    userInfo: {},
-    historyList: null,
-    soldCount: 0,
-    userDates: 0
+    hasMore: true,
+    loading: false,
+    busy: false,
+    error: ''
   },
-  getUserPage() {
-    let that = this;
-    util.request(api.UserPage + '/' + this.data.userId, {
-      page: this.data.page,
-      size: this.data.size
-    }).then(function(res) {
-      if (res.errno === 0) {
-        console.log(res.data);
-
-        if (res.data.userHistory) {
-          for (var list in res.data.userHistory) {
-            for (var i = 0; i < res.data.userHistory[list].length; i++) {
-              var goods = res.data.userHistory[list][i];
-              if (goods.time) {
-                res.data.userHistory[list][i].time = goods.time.split(' ')[0]
-              }
-              if (goods.postTime) {
-                res.data.userHistory[list][i].postTime = goods.postTime.split(' ')[0]
-              }
-              if (goods.soldTime) {
-                res.data.userHistory[list][i].soldTime = goods.soldTime.split(' ')[0]
-              }
-            }
-
-          }
-          that.setData({
-            historyList: res.data.userHistory,
-          })
-        }
-
-        //计算卖家来平台第几天
-        let registerTime = res.data.user.registerTime
-        registerTime = registerTime.replace('T', ' ').replace(/-/g, '/').split(".")[0];
-        let duration = new Date().getTime() - new Date(registerTime).getTime();
-        let dates = parseInt(Math.floor(duration) / (1000 * 60 * 60 * 24));
-
-        that.setData({
-          userInfo: res.data.user,
-          soldCount: res.data.soldCount,
-          userDates: dates
+  onLoad(options) {
+    this.setData({
+      userId: options.userId,
+      mine: String(options.userId) === String((wx.getStorageSync('userInfo') || {}).openId)
+    });
+    this.loadProfile();
+    this.reload();
+  },
+  async loadProfile() {
+    try {
+      this.setData({
+        profile: await util.api('/goodsUser/profile/' + encodeURIComponent(this.data.userId))
+      });
+    } catch (error) {
+      this.setData({
+        error: error.message
+      });
+    }
+  },
+  async reload() {
+    if (this.data.loading) {
+      this._reload = true;
+      return;
+    }
+    this.setData({
+      items: [],
+      page: 1,
+      hasMore: true
+    });
+    await this.load();
+  },
+  async load() {
+    if (this.data.loading || !this.data.hasMore) return;
+    this.setData({
+      loading: true
+    });
+    try {
+      if (this.data.kind === 'GOODS') {
+        const data = await util.api('/goodsUser/user/more/' + encodeURIComponent(this.data.userId), {
+          page: this.data.page,
+          size: 10
         });
-
+        let items = [];
+        Object.keys(data || {}).forEach(key => {
+          items = items.concat(data[key] || []);
+        });
+        const known = {};
+        this.data.items.forEach(item => {
+          known[item.id] = true;
+        });
+        const unique = items.filter(item => {
+          if (known[item.id]) return false;
+          known[item.id] = true;
+          return true;
+        });
+        this.setData({
+          items: this.data.items.concat(unique),
+          page: this.data.page + 1,
+          hasMore: items.length >= 10
+        });
       } else {
-        console.log(res.errmsg)
+        const data = await util.api('/post/entries', {
+          kind: this.data.kind,
+          authorId: this.data.userId,
+          page: this.data.page,
+          size: 10
+        });
+        this.setData({
+          items: this.data.items.concat(content.items(data)),
+          page: this.data.page + 1,
+          hasMore: data.hasMore
+        });
       }
-    });
+    } catch (error) {
+      this.setData({
+        error: error.message
+      });
+    } finally {
+      this.setData({
+        loading: false
+      });
+      wx.stopPullDownRefresh();
+      if (this._reload) {
+        this._reload = false;
+        this.reload();
+      }
+    }
   },
-
-  preview: function(event) {
-    let url = event.currentTarget.dataset.url
-    url = url.slice(0, -3) + 0 //浏览头像大图,分辨率
-
-    wx.previewImage({
-      urls: [url] // 需要预览的图片http链接列表
-    })
-    console.log(url)
-  },
-
-
-  /**
-   * 生命周期函数--监听页面加载
-   */
-  onLoad: function(options) {
-    // 页面初始化 options为页面跳转所带来的参数
+  switchKind(e) {
+    if (this.data.loading) return;
     this.setData({
-      userId: options.userId
+      kind: e.currentTarget.dataset.kind
     });
-    this.getUserPage();
+    this.reload();
   },
-
-  /**
-   * 生命周期函数--监听页面初次渲染完成
-   */
-  onReady: function() {
-
+  async follow() {
+    if (!util.requireLogin() || this.data.busy) return;
+    this.setData({
+      busy: true
+    });
+    try {
+      await util.api('/goodsUser/follow/' + encodeURIComponent(this.data.userId), {}, this.data.profile
+        .following ? 'DELETE' : 'PUT');
+      await this.loadProfile();
+    } catch (error) {
+      util.showErrorToast(error);
+    } finally {
+      this.setData({
+        busy: false
+      });
+    }
   },
-
-  /**
-   * 生命周期函数--监听页面显示
-   */
-  onShow: function() {
-
-  },
-
-  /**
-   * 生命周期函数--监听页面隐藏
-   */
-  onHide: function() {
-
-  },
-
-  /**
-   * 生命周期函数--监听页面卸载
-   */
-  onUnload: function() {
-
-  },
-
-  /**
-   * 页面相关事件处理函数--监听用户下拉动作
-   */
-  onPullDownRefresh: function() {
-
-  },
-
-
-  /**
-   * 用户点击右上角分享
-   */
-  onShareAppMessage: function() {
-
-  },
-
-  openGoods(event) {
-    let goodsId = event.currentTarget.dataset.id
-
+  edit() {
     wx.navigateTo({
-      url: '/pages/goods/goods?id=' + goodsId,
+      url: '/pages/account/profile/profile'
     });
   },
-  onReachBottom: function() {
-    console.log("拉到底")
-    this.setData({
-      page: this.data.page + 1
-    })
-    // this.getUserPageMore()
+  openGoods(e) {
+    wx.navigateTo({
+      url: '/pages/goods/goods?id=' + e.currentTarget.dataset.id
+    });
   },
-
-})
+  openEntry(e) {
+    wx.navigateTo({
+      url: '/pages/content/detail/detail?id=' + e.currentTarget.dataset.id
+    });
+  },
+  onReachBottom() {
+    this.load();
+  },
+  onPullDownRefresh() {
+    this.loadProfile();
+    this.reload();
+  }
+});

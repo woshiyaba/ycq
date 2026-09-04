@@ -1,0 +1,90 @@
+<view class="screen safe-bottom">
+  <view class="empty" wx:if="{{error}}" bindtap="load">{{error}} · 点击重试</view>
+  <block wx:if="{{order}}">
+    <view class="card yellow">
+      <view class="title">{{order.statusText}}</view>
+      <view class="small top-space">
+        {{order.status==='PENDING'?'完成模拟支付后，等待卖家交付':order.status==='PAID'?'已支付，请与对方确认交付安排':order.status==='SHIPPED'?'卖家已交付，请收到宝贝后确认收货':order.status==='COMPLETED'?'感谢信任，期待你的下一次相遇':'订单已取消'}}
+      </view>
+    </view>
+    <view class="card content-head" bindtap="goods">
+      <image class="order-cover" src="{{order.goodsImage}}" mode="aspectFill" />
+      <view class="grow">
+        <view class="bold">{{order.goodsName}}</view>
+        <view class="muted top-space">查看宝贝详情 ›</view>
+      </view>
+    </view>
+    <view class="card">
+      <view class="list-row">
+        <text class="muted">订单编号</text>
+        <text class="small">{{order.orderNo}}</text>
+      </view>
+      <view class="list-row">
+        <text class="muted">下单时间</text>
+        <text class="small">{{order.createdAt}}</text>
+      </view>
+      <view class="list-row">
+        <text class="muted">交易方式</text>
+        <text>{{order.deliveryText}}</text>
+      </view>
+      <view class="list-row">
+        <text class="muted">运费</text>
+        <text>¥ {{order.postage}}</text>
+      </view>
+      <view class="list-row">
+        <text class="bold">订单金额</text>
+        <text class="price">¥ {{order.amount}}</text>
+      </view>
+      <view class="list-row" wx:if="{{order.trackingNo}}">
+        <text class="muted">快递单号</text>
+        <text class="small">{{order.trackingNo}}</text>
+      </view>
+    </view>
+    <view class="card" wx:if="{{order.address}}">
+      <view class="section-title">收货地址</view>
+      <view class="bold">{{order.address.name}} {{order.address.phone}}</view>
+      <view class="muted top-space">{{order.address.region}} {{order.address.detail}}</view>
+    </view>
+    <view class="card" wx:if="{{order.review}}">
+      <view class="section-title">交易评价</view>
+      <view class="price">{{order.review.rating}} 分</view>
+      <view class="body-text top-space">{{order.review.content}}</view>
+      <view class="muted top-space">{{order.review.createdAt}}</view>
+    </view>
+    <view class="notice" wx:if="{{isBuyer&&order.status==='PENDING'}}">当前支付为模拟支付，不会产生真实扣款。</view>
+  </block>
+</view>
+<view class="bottom-bar" wx:if="{{order}}">
+  <button class="btn small secondary" wx:if="{{isBuyer}}" bindtap="chat">联系卖家</button>
+  <button class="btn small secondary" wx:if="{{order.status==='PENDING'}}" bindtap="action"
+    data-action="cancel" disabled="{{busy}}">取消订单</button>
+  <button class="btn grow" wx:if="{{isBuyer&&order.status==='PENDING'}}" bindtap="action" data-action="pay"
+    loading="{{busy}}" disabled="{{busy}}">模拟支付</button>
+  <button class="btn grow" wx:if="{{isSeller&&order.status==='PAID'}}" bindtap="action" data-action="ship"
+    disabled="{{busy}}">{{order.deliveryMethod==='EXPRESS'?'确认发货':'确认交付'}}</button>
+  <button class="btn grow" wx:if="{{isBuyer&&order.status==='SHIPPED'}}" bindtap="action"
+    data-action="receive" disabled="{{busy}}">确认收货</button>
+  <button class="btn grow" wx:if="{{isBuyer&&order.status==='COMPLETED'&&!order.review}}" bindtap="action"
+    data-action="review" disabled="{{busy}}">评价交易</button>
+</view>
+<view class="overlay" wx:if="{{panel}}" bindtap="close">
+  <view class="sheet" catchtap="noop">
+    <view class="row between">
+      <text class="title">{{panel==='ship'?'确认交付':'评价交易'}}</text>
+      <text bindtap="close">×</text>
+    </view>
+    <block wx:if="{{panel==='ship'}}">
+      <view class="notice top-space">请完成实际交付后再确认。</view>
+      <input wx:if="{{order.deliveryMethod==='EXPRESS'}}" class="input top-space" value="{{trackingNo}}"
+        data-field="trackingNo" bindinput="input" maxlength="80" placeholder="填写快递单号（选填）" />
+    </block>
+    <block wx:else>
+      <picker range="{{ratings}}" value="{{rating-1}}" bindchange="rating">
+        <view class="field">评分：{{rating}} 分 ›</view>
+      </picker>
+      <textarea class="textarea" value="{{reviewContent}}" data-field="reviewContent" bindinput="input"
+        maxlength="1000" placeholder="分享本次交易感受" />
+    </block>
+    <button class="btn top-space" bindtap="submitPanel" disabled="{{busy}}" loading="{{busy}}">确认提交</button>
+  </view>
+</view>

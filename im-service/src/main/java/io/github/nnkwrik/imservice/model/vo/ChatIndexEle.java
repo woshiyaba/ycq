@@ -27,6 +27,7 @@ public class ChatIndexEle {
 
     /*与本次聊天相关的商品的信息*/
     private SimpleGoods goods;
+    private io.github.nnkwrik.common.dto.SimpleContent content;
 
     /*最后一条聊天记录*/
     private History lastChat;
@@ -37,6 +38,9 @@ public class ChatIndexEle {
 
     @JsonIgnore
     private Integer goodsId;
+
+    @JsonIgnore
+    private Integer postId;
 
 }
 

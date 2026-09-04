@@ -1,73 +1,35 @@
-<view class="top-pop-box">
-  <view class="top-pop">
-    <view class="content">
-      <image class='img' mode='aspectFill' bindtap='toGoods' data-id='{{goods.id}}' src='{{goods.primaryPicUrl}}'></image>
-      <view class='info'>
-        <view class='name' bindtap='toGoods' data-id='{{goods.id}}'>{{goods.name}}</view>
-        <view class='order'>
-          <view class='price' bindtap='toGoods' data-id='{{goods.id}}'>¥ {{goods.price}}</view>
-          <view class='btn' bindtap='buy'>立即购买</view>
-        </view>
-        <view class='msg'>交易前聊一聊</view>
+<view class="chat-screen">
+  <view class="chat-context" wx:if="{{goods||content}}">
+    <view class="row gap">
+      <image wx:if="{{goods.primaryPicUrl||content.primaryPicUrl}}" class="context-cover"
+        src="{{goods.primaryPicUrl||content.primaryPicUrl}}" mode="aspectFill" bindtap="card" />
+      <view class="grow" bindtap="card">
+        <view class="bold context-title">{{goods.name||content.title}}</view>
+        <view class="muted top-space">{{content?(content.kind==='RECRUITMENT'?'招聘咨询':'圈友动态'):'交易前聊一聊'}}</view>
+        <view class="price" wx:if="{{goods}}">¥ {{goods.price}}</view>
       </view>
+      <button class="btn small" wx:if="{{goods&&goods.sellerId!==me&&goods.isSelling}}" bindtap="buy">购买
+      </button>
     </view>
   </view>
-</view>
-
-
-<view class='news'>
-  <scroll-view scroll-y="true" bindscrolltoupper="more" scroll-top="{{scrollTop}}" wx:key='' class='scroll'>
-    <view class="historycon">
-
-      <view wx:for="{{historyList}}" wx:key="{{index}}">
-
-        <!-- 自己发送 -->
-        <view class='history' wx:if="{{((isU1 && item.u1ToU2) || (!isU1 && !item.u1ToU2)) && item.messageType!=2}}">
-          <view class='time-view'>
-            <text class='time'>{{item.sendTime}}</text>
-          </view>
-
-          <view class='my_right'>
-            <view class='page_row'>
-              <text class='new_txt'>{{item.messageBody}}</text>
-              <view class='sanjiao my'></view>
-              <image class='new_img' mode='aspectFill' src='{{myAvatar}}'></image>
-            </view>
-          </view>
-        </view>
-
-        <!-- 对方发送 -->
-        <view class='history' wx:elif="{{item.messageType!=2}}" id="msg{{item.sendTime}}">
-          <view class='time-view'>
-            <text class='time'>{{item.sendTime}}</text>
-          </view>
-
-          <view class='you_left'>
-            <view class='page_row'>
-              <image class='new_img' mode='aspectFill' src='{{otherSide.avatarUrl}}'></image>
-              <view class='sanjiao you'></view>
-              <text class='new_txt'>{{item.messageBody}}</text>
-
-            </view>
-          </view>
-        </view>
-
+  <scroll-view class="conversation" scroll-y scroll-into-view="{{scrollTo}}" bindscrolltoupper="load">
+    <view class="loading" wx:if="{{hasMore}}" bindtap="load">{{loading?'加载中…':'查看更早消息'}}</view>
+    <view class="notice" wx:if="{{error}}">{{error}}</view>
+    <view wx:for="{{history}}" wx:key="index" class="message-group">
+      <view class="message-time">{{item.sendTime}}</view>
+      <view class="message-row {{item.mine?'outgoing':''}}">
+        <image wx:if="{{item.mine?avatar:otherSide.avatarUrl}}" class="avatar"
+          src="{{item.mine?avatar:otherSide.avatarUrl}}" />
+        <view wx:else class="avatar avatar-fallback">圈</view>
+        <view class="bubble">{{item.messageBody}}</view>
       </view>
-      <view id="hei"></view>
     </view>
+    <view class="empty" wx:if="{{!history.length&&!loading}}">打个招呼，开启一段对话吧</view>
+    <view id="message-bottom" style="height:30rpx"></view>
   </scroll-view>
-</view>
-
-
-<view class="input-pop-box">
-  <view class="input-pop">
-
-    <view class="input">
-
-      <view class="content">
-        <input class='' confirm-hold="true" placeholder="" maxlength='800' confirm-type="done" bindconfirm='done' value='{{typing}}' bindinput="inputChange" bindconfirm='sendMsg' />
-      </view>
-      <view class='send' bindtap='sendMsg'>发送</view>
-    </view>
+  <view class="message-composer">
+    <input value="{{input}}" bindinput="input" bindconfirm="send" confirm-type="send" maxlength="2000"
+      placeholder="说点什么…" adjust-position cursor-spacing="20" />
+    <button class="btn small" bindtap="send" loading="{{sending}}" disabled="{{sending||!input||!otherSide.openId}}">发送</button>
   </view>
 </view>

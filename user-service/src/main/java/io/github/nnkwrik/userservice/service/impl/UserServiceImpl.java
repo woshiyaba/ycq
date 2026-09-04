@@ -39,8 +39,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Map<String, SimpleUser> getSimpleUserList(List<String> openIdList) {
-        List<User> userList = userMapper.getSimpleUserList(openIdList);
         Map<String, SimpleUser> dtoMap = new HashMap<>();
+        if (openIdList == null || openIdList.isEmpty()) return dtoMap;
+        List<User> userList = userMapper.getSimpleUserList(openIdList);
         userList.stream().forEach(user -> {
             SimpleUser simpleUser = new SimpleUser();
             BeanUtils.copyProperties(user, simpleUser);

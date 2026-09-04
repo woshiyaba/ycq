@@ -14,6 +14,9 @@ mybatis:
   configuration:
     map-underscore-to-camel-case: true
 
+jwt:
+  pub-key-file-name: RSA.pub
+
 logging:
   level:
     org.springframework.web: info
