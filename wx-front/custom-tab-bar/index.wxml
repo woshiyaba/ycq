@@ -5,7 +5,7 @@
       <view wx:if="{{item.sell}}" class="sell-circle">卖</view>
       <block wx:else>
         <view class="tab-icon-wrap">
-          <image class="tab-icon" src="{{item.icon}}" />
+          <image class="tab-icon" src="{{selected===index?item.selectedIcon:item.icon}}" />
           <text class="tab-badge" wx:if="{{index===3&&unread}}">{{unread>99?'99+':unread}}</text>
         </view>
         <text class="tab-name">{{item.name}}</text>

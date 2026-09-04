@@ -6,14 +6,17 @@ import fangxianyu.innerApi.user.UserClientHandler;
 import io.github.nnkwrik.common.dto.Response;
 import io.github.nnkwrik.common.dto.SimpleUser;
 import io.github.nnkwrik.common.dto.UserProfile;
+import io.github.nnkwrik.goodsservice.dao.IndexMapper;
 import io.github.nnkwrik.goodsservice.dao.OrderMapper;
 import io.github.nnkwrik.goodsservice.model.po.ContentComment;
 import io.github.nnkwrik.goodsservice.model.po.ContentPost;
 import io.github.nnkwrik.goodsservice.model.po.Order;
 import io.github.nnkwrik.goodsservice.model.po.RecruitmentJob;
 import io.github.nnkwrik.goodsservice.model.vo.ContentPage;
+import io.github.nnkwrik.goodsservice.model.vo.FeedItem;
 import io.github.nnkwrik.goodsservice.service.AccountService;
 import io.github.nnkwrik.goodsservice.service.ContentService;
+import io.github.nnkwrik.goodsservice.service.FeedService;
 import io.github.nnkwrik.goodsservice.service.OrderService;
 import org.apache.ibatis.session.Configuration;
 import org.junit.Assume;
@@ -57,6 +60,7 @@ public class MarketplaceDatabaseTests {
     private ContentService content;
     private AccountService accounts;
     private OrderService orders;
+    private FeedService feed;
 
     @Before
     public void setUp() throws Exception {
@@ -73,10 +77,12 @@ public class MarketplaceDatabaseTests {
         Configuration configuration = new Configuration();
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.addMapper(OrderMapper.class);
+        configuration.addMapper(IndexMapper.class);
         SqlSessionFactoryBean factory = new SqlSessionFactoryBean();
         factory.setDataSource(dataSource);
         factory.setConfiguration(configuration);
-        orders = new OrderService(new SqlSessionTemplate(factory.getObject()).getMapper(OrderMapper.class));
+        SqlSessionTemplate session = new SqlSessionTemplate(factory.getObject());
+        orders = new OrderService(session.getMapper(OrderMapper.class));
 
         Map<String, UserProfile> profiles = new HashMap<>();
         profiles.put(SELLER, profile(SELLER, "测试发布者"));
@@ -96,6 +102,90 @@ public class MarketplaceDatabaseTests {
         ReflectionTestUtils.setField(accounts, "db", jdbc);
         ReflectionTestUtils.setField(accounts, "users", userClient);
         ReflectionTestUtils.setField(accounts, "userInfo", userInfo);
+        feed = new FeedService(jdbc, userInfo, session.getMapper(IndexMapper.class), new ObjectMapper());
+    }
+
+    @Test
+    public void homeAndFollowingFeedsMapMixedSourcesAndRealPopularityWithPagination() {
+        Integer goodsId = rollback(() -> {
+            assertUnusedTestUsers();
+            int id = createGoods();
+            String secondImage = IMAGE + "?second=1";
+            jdbc.update("insert into goods_gallery(goods_id,img_url) values(?,?),(?,?)", id, IMAGE, id, secondImage);
+            jdbc.update("update goods set postage=0,post_time='2026-01-01 09:00:00' where id=?", id);
+            ContentPost request = community();
+            request.setImages(Arrays.asList(secondImage, IMAGE));
+            ContentPost post = content.create(request, SELLER);
+            jdbc.update("update content_post set created_at='2026-01-01 10:00:00' where id=?", post.getId());
+            content.create(community(), BUYER);
+            accounts.follow(BUYER, SELLER, true);
+
+            Map<String, Object> result = feed.feed("HOME", "FOLLOWING", null, null, 1, 20, BUYER);
+            assertEquals(2, number(result, "total"));
+            assertEquals(false, result.get("hasMore"));
+            assertTrue(result.get("banners") instanceof List);
+            List<FeedItem> items = feedItems(result);
+            assertEquals(2, items.size());
+            FeedItem community = items.get(0);
+            FeedItem goods = items.get(1);
+            assertEquals("COMMUNITY", community.getKind());
+            assertEquals(post.getId(), community.getId());
+            assertEquals(post.getTitle(), community.getTitle());
+            assertEquals(post.getBody(), community.getDescription());
+            assertNull(community.getPrice());
+            assertFalse(community.isFreeShipping());
+            assertEquals(secondImage, community.getPrimaryPicUrl());
+            assertEquals(Arrays.asList(secondImage, IMAGE), community.getImages());
+            assertEquals("GOODS", goods.getKind());
+            assertEquals(Integer.valueOf(id), goods.getId());
+            assertEquals(new BigDecimal("99.99"), goods.getPrice());
+            assertTrue(goods.isFreeShipping());
+            assertEquals(IMAGE, goods.getPrimaryPicUrl());
+            assertEquals(Arrays.asList(IMAGE, secondImage), goods.getImages());
+            for (FeedItem item : items) {
+                assertEquals(SELLER, item.getAuthor().getOpenId());
+                assertEquals("测试发布者", item.getAuthor().getNickName());
+                assertEquals(IMAGE, item.getAuthor().getAvatarUrl());
+                assertEquals("运城市", item.getRegion());
+                assertEquals(1, item.getFollowerCount());
+                assertNotNull(item.getCreatedAt());
+            }
+
+            Map<String, Object> first = feed.feed("HOME", "FOLLOWING", null, null, 1, 1, BUYER);
+            Map<String, Object> second = feed.feed("HOME", "FOLLOWING", null, null, 2, 1, BUYER);
+            assertEquals(2, number(first, "total"));
+            assertEquals(2, number(second, "total"));
+            assertEquals(1, number(first, "page"));
+            assertEquals(2, number(second, "page"));
+            assertEquals(1, number(first, "size"));
+            assertEquals(true, first.get("hasMore"));
+            assertEquals(false, second.get("hasMore"));
+            assertEquals(Collections.singletonList(community), feedItems(first));
+            assertEquals(Collections.singletonList(goods), feedItems(second));
+            assertFalse(second.containsKey("banners"));
+
+            String keyword = "ycq-feed-rollback-" + id;
+            jdbc.update("update goods set name=?,want_count=1,last_edit='2026-01-01 10:00:00' where id=?", keyword, id);
+            jdbc.update("update content_post set title=? where id=?", keyword, post.getId());
+            Map<String, Object> beforeReactions = feed.feed("HOME", "HOT", null, keyword, 1, 20, null);
+            assertEquals(2, number(beforeReactions, "total"));
+            assertEquals("GOODS", feedItems(beforeReactions).get(0).getKind());
+            content.react(post.getId(), BUYER, "LIKE", true);
+            content.comment(post.getId(), BUYER, "这条真实留言计入热度", null);
+            for (String channel : Arrays.asList("RECOMMENDED", "NEW", "HOT")) {
+                Map<String, Object> mixed = feed.feed("HOME", channel, null, keyword, 1, 20, null);
+                assertEquals(2, number(mixed, "total"));
+                assertEquals(false, mixed.get("hasMore"));
+                assertEquals("COMMUNITY", feedItems(mixed).get(0).getKind());
+                assertEquals(post.getId(), feedItems(mixed).get(0).getId());
+                assertEquals("GOODS", feedItems(mixed).get(1).getKind());
+            }
+            return id;
+        });
+        assertEquals(0, jdbc.queryForObject("select count(*) from goods where id=?", Integer.class, goodsId).intValue());
+        assertEquals(0, jdbc.queryForObject("select count(*) from goods_gallery where goods_id=?", Integer.class, goodsId).intValue());
+        assertEquals(0, jdbc.queryForObject("select count(*) from content_post where author_id in (?,?)", Integer.class, SELLER, BUYER).intValue());
+        assertEquals(0, jdbc.queryForObject("select count(*) from user_follow where follower_id=?", Integer.class, BUYER).intValue());
     }
 
     @Test
@@ -250,6 +340,9 @@ public class MarketplaceDatabaseTests {
             assertEquals("Reserved rollback-test user already has data in " + table, 0,
                     jdbc.queryForObject("select count(*) from " + table + " where " + column + " in (?,?)", Integer.class, SELLER, BUYER).intValue());
         }
+        assertEquals("Reserved rollback-test users already have follow data", 0,
+                jdbc.queryForObject("select count(*) from user_follow where follower_id in (?,?) or followed_id in (?,?)",
+                        Integer.class, SELLER, BUYER, SELLER, BUYER).intValue());
     }
 
     private int createGoods() {
@@ -324,6 +417,11 @@ public class MarketplaceDatabaseTests {
     @SuppressWarnings("unchecked")
     private List<ContentComment> notificationItems(Map<String, Object> value) {
         return (List<ContentComment>) value.get("items");
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<FeedItem> feedItems(Map<String, Object> value) {
+        return (List<FeedItem>) value.get("items");
     }
 
     @SuppressWarnings("unchecked")

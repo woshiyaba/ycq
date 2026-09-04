@@ -1,4 +1,6 @@
 {
-  "navigationBarTitleText": "精选",
+  "navigationStyle": "custom",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#ffffff",
   "enablePullDownRefresh": true
 }

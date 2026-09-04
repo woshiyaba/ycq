@@ -1,11 +1,14 @@
 package io.github.nnkwrik.goodsservice.controller;
 
+import io.github.nnkwrik.common.dto.JWTUser;
 import io.github.nnkwrik.common.dto.Response;
+import io.github.nnkwrik.common.token.injection.JWT;
 import io.github.nnkwrik.goodsservice.model.po.Category;
 import io.github.nnkwrik.goodsservice.model.po.Goods;
 import io.github.nnkwrik.goodsservice.model.vo.CatalogPageVo;
 import io.github.nnkwrik.goodsservice.model.vo.IndexPageVo;
 import io.github.nnkwrik.goodsservice.service.IndexService;
+import io.github.nnkwrik.goodsservice.service.FeedService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 首页和分类页api
@@ -27,6 +31,21 @@ public class IndexController {
 
     @Autowired
     private IndexService indexService;
+
+    @Autowired
+    private FeedService feedService;
+
+    @GetMapping("/index/feed")
+    public Response<Map<String, Object>> feed(@RequestParam(defaultValue = "HOME") String scene,
+                                              @RequestParam(defaultValue = "RECOMMENDED") String channel,
+                                              @RequestParam(required = false) String categoryKey,
+                                              @RequestParam(required = false) String keyword,
+                                              @RequestParam(defaultValue = "1") int page,
+                                              @RequestParam(defaultValue = "20") int size,
+                                              @JWT JWTUser user) {
+        return Response.ok(feedService.feed(scene, channel, categoryKey, keyword, page, size,
+                user == null ? null : user.getOpenId()));
+    }
 
     /**
      * 展示首页,包括:广告,首页分类,首页商品

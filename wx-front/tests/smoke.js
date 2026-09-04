@@ -16,7 +16,7 @@ for (const route of app.pages) {
   });
   let page;
   vm.runInNewContext(js, {
-    require: () => ({}),
+    require: name => name.endsWith('/utils/feed.js') ? require('../utils/feed.js') : ({}),
     Page: value => {
       page = value;
     },
@@ -448,8 +448,9 @@ const util = require('../utils/util.js');
   await chatPage.load.call(chat);
   assert.strictEqual(chat.data.hasMore, true, 'an expanded same-second page can exceed 20 messages');
   websocket.wsClose();
+  await require('./feed-smoke.js')();
   console.log('OK: ' + app.pages.length +
-    ' registered pages, navigation and event bindings; image migration, request/auth and WebSocket regression checks.');
+    ' registered pages, navigation and event bindings; feed pagination/races, image migration, request/auth and WebSocket regression checks.');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;

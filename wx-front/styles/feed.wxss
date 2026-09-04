@@ -1,0 +1,391 @@
+page {
+  background: #fff;
+  color: #111;
+}
+
+.feed-page {
+  min-height: 100vh;
+  padding-bottom: calc(83px + env(safe-area-inset-bottom));
+}
+
+.feed-system-space {
+  background: #fff;
+}
+
+.feed-toolbar {
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 4px 13px 6px 10px;
+  gap: 16px;
+}
+
+.feed-calendar {
+  width: 28px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.feed-calendar image {
+  width: 24px;
+  height: 24px;
+}
+
+.feed-search {
+  flex: 1;
+  min-width: 0;
+  height: 33px;
+  border: 1px solid #bbb;
+  border-radius: 15px;
+  padding: 1px 1px 1px 13px;
+  display: flex;
+  align-items: center;
+}
+
+.feed-search input {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  font-size: 12px;
+}
+
+.feed-search-clear {
+  width: 14px;
+  height: 14px;
+  margin: 0 7px;
+}
+
+.feed-search-button {
+  width: 50px;
+  height: 29px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 15px;
+  background: #050505;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.feed-channels {
+  width: 100%;
+  height: 40px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  padding: 0 10px;
+}
+
+.feed-channel {
+  position: relative;
+  display: inline-block;
+  margin-right: 26px;
+  padding: 12px 0 8px;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.feed-channel:last-child {
+  margin-right: 12px;
+}
+
+.feed-channel.active {
+  font-weight: 600;
+}
+
+.feed-channel.active::after {
+  content: '';
+  position: absolute;
+  bottom: 3px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #111;
+}
+
+.feed-categories {
+  height: 144px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: 67px 67px;
+  padding-top: 12px;
+}
+
+.feed-category {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+.feed-category image {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 9px;
+}
+
+.feed-category-label {
+  font-size: 12px;
+  line-height: 17px;
+  white-space: nowrap;
+  border-bottom: 1px solid transparent;
+}
+
+.feed-category.active .feed-category-label {
+  border-bottom-color: #111;
+}
+
+.feed-banner {
+  height: 87px;
+  margin: 0 10px 10px;
+}
+
+.feed-banner image {
+  width: 100%;
+  height: 100%;
+}
+
+.feed-waterfall {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 0 10px;
+}
+
+.feed-column {
+  width: calc((100% - 10px) / 2);
+  min-width: 0;
+}
+
+.feed-card {
+  margin-bottom: 8px;
+  background: #fff;
+  box-shadow: inset 0 0 0 .5px #ebebeb;
+}
+
+.feed-cover {
+  position: relative;
+  height: 0;
+  padding-top: 82.220994%;
+  background: #f4f4f4;
+}
+
+.priced .feed-cover {
+  padding-top: 101.104972%;
+}
+
+.feed-cover image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.feed-no-image {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  transform: translateY(-50%);
+  color: #aaa;
+  font-size: 12px;
+}
+
+.feed-copy {
+  padding: 4px 5px 9px;
+}
+
+.priced .feed-copy {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+.feed-title {
+  height: 17px;
+  font-size: 12px;
+  line-height: 17px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.feed-shipping {
+  background: #fff500;
+  font-size: 10px;
+  line-height: 14px;
+  margin-right: 3px;
+  padding: 0 2px;
+}
+
+.feed-price {
+  height: 25px;
+  color: #ed252a;
+  font-size: 18px;
+  line-height: 25px;
+}
+
+.feed-currency {
+  font-size: 12px;
+  margin-right: 1px;
+}
+
+.feed-description {
+  height: 14px;
+  font-size: 10px;
+  line-height: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: #333;
+}
+
+.feed-author {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  margin-top: 4px;
+}
+
+.feed-author>text {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.feed-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #f3f3f3;
+}
+
+.feed-avatar-empty {
+  text-align: center;
+  line-height: 18px;
+  font-size: 10px;
+  color: #666;
+}
+
+.feed-state {
+  padding: 22px 16px;
+  text-align: center;
+  color: #aaa;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.feed-empty {
+  padding-top: 50px;
+}
+
+.feed-error {
+  color: #c55543;
+}
+
+.follow-card {
+  padding-bottom: 32px;
+}
+
+.follow-header {
+  position: relative;
+  height: 78px;
+}
+
+.follow-avatar {
+  position: absolute;
+  top: 16px;
+  left: 15px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.follow-avatar-empty {
+  background: #f3f3f3;
+  color: #888;
+  text-align: center;
+  line-height: 48px;
+  font-size: 18px;
+}
+
+.follow-name {
+  position: absolute;
+  left: 76px;
+  right: 12px;
+  top: 21px;
+  font-size: 14px;
+  line-height: 20px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.follow-meta {
+  position: absolute;
+  left: 76px;
+  right: 86px;
+  top: 43px;
+  font-size: 12px;
+  line-height: 20px;
+  color: #777;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.follow-fans {
+  position: absolute;
+  right: 15px;
+  top: 43px;
+  font-size: 12px;
+  line-height: 20px;
+  color: #777;
+}
+
+.follow-body {
+  margin-left: 75px;
+  margin-right: 26px;
+}
+
+.follow-title,
+.follow-description {
+  font-size: 12px;
+  line-height: 17px;
+  word-break: break-all;
+}
+
+.follow-description {
+  margin-top: 4px;
+}
+
+.follow-images {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 120px));
+  column-gap: 26px;
+  row-gap: 11px;
+}
+
+.follow-picture image {
+  width: 100%;
+  height: 120px;
+  background: #f4f4f4;
+}
+
+.follow-price {
+  display: block;
+  height: 24px;
+  line-height: 24px;
+  color: #ed252a;
+  font-size: 12px;
+}

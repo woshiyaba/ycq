@@ -5,12 +5,14 @@ Component({
     tabs: [{
         path: '/pages/index/index',
         name: '圈',
-        icon: '/static/images/ic_menu_home_nor.png'
+        icon: '/static/images/ic_menu_home_nor.png',
+        selectedIcon: '/static/images/ic_menu_home_pressed.png'
       },
       {
         path: '/pages/category/index/index',
         name: '精选',
-        icon: '/static/images/ic_menu_cate_nor.png'
+        icon: '/static/images/ic_menu_cate_nor.png',
+        selectedIcon: '/static/images/ic_menu_cate_pressed.png'
       },
       {
         path: '/pages/post/nav2post/nav2post',
@@ -20,12 +22,14 @@ Component({
       {
         path: '/pages/chat/chatIndex/chatIndex',
         name: '消息',
-        icon: '/static/images/ic_menu_chat_nor.png'
+        icon: '/static/images/ic_menu_chat_nor.png',
+        selectedIcon: '/static/images/ic_menu_chat_pressed.png'
       },
       {
         path: '/pages/ucenter/index/index',
         name: '我的',
-        icon: '/static/images/ic_menu_me_nor.png'
+        icon: '/static/images/ic_menu_me_nor.png',
+        selectedIcon: '/static/images/ic_menu_me_pressed.png'
       }
     ]
   },

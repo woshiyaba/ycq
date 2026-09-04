@@ -1,0 +1,93 @@
+<view class="feed-page">
+  <view class="feed-system-space" style="height:{{chromeHeight}}px"></view>
+  <view class="feed-toolbar">
+    <view class="feed-calendar">
+      <image src="/static/images/detail_last_edit.png" mode="aspectFit" />
+    </view>
+    <view class="feed-search">
+      <input value="{{keyword}}" bindinput="inputSearch" bindconfirm="search" maxlength="100"
+        confirm-type="search" aria-label="搜索" />
+      <image wx:if="{{keyword}}" class="feed-search-clear" src="/static/images/clear_input.png"
+        bindtap="clearSearch" aria-label="清空搜索" />
+      <button class="feed-search-button" bindtap="search" aria-label="搜索">
+        <icon type="search" size="24" color="#ffffff" />
+      </button>
+    </view>
+  </view>
+  <scroll-view wx:if="{{scene==='HOME'}}" class="feed-channels" scroll-x enhanced show-scrollbar="{{false}}">
+    <view wx:for="{{channels}}" wx:key="key" class="feed-channel {{channel===item.key?'active':''}}"
+      data-key="{{item.key}}" bindtap="switchChannel">{{item.name}}</view>
+  </scroll-view>
+  <view wx:if="{{channel!=='FOLLOWING'}}" class="feed-categories">
+    <view wx:for="{{categories}}" wx:key="key"
+      class="feed-category {{categoryKey===item.key||(item.key==='news'&&channel==='SQUARE')?'active':''}}"
+      bindtap="chooseCategory" data-key="{{item.key}}">
+      <image src="/static/icons/{{item.icon}}.svg" mode="aspectFit" />
+      <text class="feed-category-label">{{item.name}}</text>
+    </view>
+  </view>
+  <swiper wx:if="{{scene==='HOME'&&channel!=='FOLLOWING'&&banners.length}}" class="feed-banner" autoplay
+    circular indicator-dots="{{banners.length>1}}" indicator-color="rgba(255,255,255,.5)"
+    indicator-active-color="#ffffff">
+    <swiper-item wx:for="{{banners}}" wx:key="id" bindtap="openBanner" data-link="{{item.link}}">
+      <image src="{{item.imageUrl}}" mode="aspectFill" />
+    </swiper-item>
+  </swiper>
+  <view wx:if="{{channel==='FOLLOWING'}}" class="feed-following">
+    <view wx:for="{{following}}" wx:key="feedKey" class="follow-card">
+      <view class="follow-header" bindtap="openAuthor" data-id="{{item.author.openId}}">
+        <image wx:if="{{item.author.avatarUrl}}" class="follow-avatar" src="{{item.author.avatarUrl}}"
+          mode="aspectFill" />
+        <view wx:else class="follow-avatar follow-avatar-empty">
+          {{item.author.nickName?item.author.nickName[0]:'圈'}}</view>
+        <text class="follow-name">{{item.author.nickName||'运城圈用户'}}</text>
+        <text class="follow-meta">{{item.dateLabel}} {{item.region}}</text>
+        <text class="follow-fans">{{item.followerCount||0}}粉丝</text>
+      </view>
+      <view class="follow-body" bindtap="openItem" data-item="{{item}}">
+        <view class="follow-title">{{item.title}}</view>
+        <view wx:if="{{item.description&&item.description!==item.title}}" class="follow-description">
+          {{item.description}}</view>
+        <view wx:if="{{item.images.length}}" class="follow-images">
+          <view wx:for="{{item.images}}" wx:for-item="picture" wx:key="*this" class="follow-picture">
+            <image src="{{picture}}" mode="aspectFill" lazy-load />
+            <text wx:if="{{item.priceLabel!==''}}" class="follow-price">¥{{item.priceLabel}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view wx:else class="feed-waterfall">
+    <view wx:for="{{[0,1]}}" wx:for-item="columnIndex" wx:key="*this" class="feed-column">
+      <view wx:for="{{columns[columnIndex]}}" wx:key="feedKey"
+        class="feed-card {{item.priced?'priced':'described'}}" bindtap="openItem" data-item="{{item}}">
+        <view class="feed-cover">
+          <image wx:if="{{item.primaryPicUrl}}" src="{{item.primaryPicUrl}}" mode="aspectFill" lazy-load />
+          <text wx:else class="feed-no-image">{{item.kind==='GOODS'?'闲置好物':'圈内动态'}}</text>
+        </view>
+        <view class="feed-copy">
+          <view class="feed-title">
+            <text wx:if="{{item.freeShipping}}" class="feed-shipping">包邮</text>{{item.title}}
+          </view>
+          <view wx:if="{{item.priced}}" class="feed-price">
+            <text class="feed-currency">¥</text>{{item.priceLabel}}
+          </view>
+          <view wx:else class="feed-description">{{item.description}}</view>
+          <view class="feed-author" catchtap="openAuthor" data-id="{{item.author.openId}}">
+            <image wx:if="{{item.author.avatarUrl}}" class="feed-avatar" src="{{item.author.avatarUrl}}"
+              mode="aspectFill" />
+            <view wx:else class="feed-avatar feed-avatar-empty">
+              {{item.author.nickName?item.author.nickName[0]:'圈'}}</view>
+            <text>{{item.author.nickName||'运城圈用户'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view wx:if="{{error}}" class="feed-state feed-error" bindtap="load">{{error}} · 点击重试</view>
+  <view wx:elif="{{loading}}" class="feed-state">加载中…</view>
+  <view wx:elif="{{!columns[0].length&&!columns[1].length}}" class="feed-state feed-empty">
+    {{channel==='FOLLOWING'?'关注喜欢的用户，看看他们的新动态':'暂无相关内容'}}
+  </view>
+  <view wx:elif="{{!hasMore}}" class="feed-state">已经到底啦</view>
+</view>

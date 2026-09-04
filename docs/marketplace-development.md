@@ -4,7 +4,8 @@
 
 | 功能 | 小程序入口 | 后端入口 |
 | --- | --- | --- |
-| 社区动态、关注内容、搜索 | 首页「圈」、生活动态发布、内容详情 | `/post/entries`、`/post/mine` |
+| 首页推荐、关注、分类筛选、精选、搜索 | 首页「圈」、精选 | `/index/feed` |
+| 社区动态、发布及个人内容 | 生活动态发布、内容详情、个人主页 | `/post/entries`、`/post/mine` |
 | 招聘列表、周结/日结、兼职、行业筛选 | 招聘列表、招聘发布、职位详情 | `/post/entries?kind=RECRUITMENT` |
 | 文字图片发布、编辑、上下架、删除 | 发布页、自己的内容详情 | `/post/entries/{id}`、`/{id}/status` |
 | 点赞、收藏、留言、回复 | 社区/招聘详情、我的收藏 | `/post/entries/{id}/like`、`/favorite`、`/comments`、`/post/favorites` |
@@ -56,6 +57,10 @@ docker compose up -d --build
 
 在微信开发者工具中导入 `wx-front/`，配置小程序 AppID 并使用「编译」。接口根地址由 `wx-front/config/api.js` 读取，可通过小程序缓存 `apiRoot` 指向当前环境的网关根 URL；修改后重新编译。正式小程序需配置与部署环境对应的 HTTPS/WSS 合法域名。该目录没有 npm 构建步骤。
 
+首页和精选已按墨刀重做，复用现有图标。两页使用独立的 `templates/feed.wxml`、`styles/feed.wxss` 和 `utils/feed.js`，搜索、频道切换、分类筛选、下拉刷新与分页均请求 `/index/feed`。该接口接受 `scene=HOME|FEATURED`、`channel`、`categoryKey`、`keyword`、`page`、`size`，返回 `items/total/page/size/hasMore`，第一页附 `banners`。首页推荐、新品、热点及关注包含闲置与社区动态；广场、圈子、找资源展示社区内容，精选和服饰展示商品。关注需要登录，分类按服务器类目及其后代筛选，招聘入口复用招聘页面。
+
+本次两页改版不新增库表，依赖上述已迁移表；需同步部署新的 `goods-service`。轮播、商品、作者及动态来自接口，墨刀示例文案和图片仅用于本地布局校验。自定义导航会为微信状态栏和胶囊按钮预留实际空间，最终高度须在微信开发者工具或真机检查。
+
 支付目前为模拟通道：有效订单调用 `POST /goods/orders/{id}/pay` 后直接进入 `PAID`，界面提示「模拟支付成功」，不会调用微信支付或发生真实扣款。身份、订单归属、商品占用及状态仍由后端校验。订单金额来自商品价格和运费快照；重复创建、支付、收货和评价具有幂等处理。交易流程为 `PENDING → PAID → SHIPPED → COMPLETED`，待付款订单可取消。
 
 以下为可复现的验证命令；本次执行结果见文末。
@@ -78,6 +83,8 @@ mvn -pl goods-service -am '-Dmaven.compiler.source=1.8' '-Dmaven.compiler.target
 ```
 
 数据库测试覆盖实际内容/招聘映射、回复、两源通知、点赞收藏、关注、默认地址、足迹封面、个人统计，以及订单创建到评价的完整 SQL 流程。上线前仍需在微信开发者工具或真机验证登录、图片上传、消息收发、页面交互及视觉效果。
+
+2026-09-05 首页/精选改版验证：`FeedServiceTests` 的 3 项测试及 `MarketplaceDatabaseTests#homeAndFollowingFeedsMapMixedSourcesAndRealPopularityWithPagination` 通过，后者实际连接 MySQL 验证混合流、图集、粉丝、分页及互动热度排序，数据自动回滚。使用 Java 8 清理并重建 `common,inner-api,goods-service` 成功；小程序 smoke 与 31 个 WXML/WXSS 文件原生编译通过。通过实际 WXML 编译树和 WXSS 完成 393px 浏览器布局对照，该预览使用临时样例内容，不代替微信真机验收。
 
 2026-09-04 验证记录：使用 JDK 8 从源码执行 `clean package` 和上述目标测试，全部 9 个 Maven 模块构建成功，32 项测试通过且无跳过，其中 2 项数据库集成测试实际执行并回滚。额外在实际 MySQL 中验证了聊天分页边界的 28 条同秒消息完整返回，测试会话及消息均已回滚。小程序 smoke 检查、28 页及模板和自定义底栏的微信原生 WXML/WXSS 编译通过。
 

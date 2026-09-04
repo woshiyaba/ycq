@@ -1,5 +1,6 @@
 {
-  "navigationBarTitleText": "运城圈",
-  "enablePullDownRefresh": true,
-  "navigationBarBackgroundColor": "#ffffff"
+  "navigationStyle": "custom",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#ffffff",
+  "enablePullDownRefresh": true
 }
