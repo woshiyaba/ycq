@@ -1,4 +1,5 @@
 const config = require('../config/api.js');
+const imageUrls = require('../config/image-urls.js');
 let loginPending;
 
 function formatTime(date) {
@@ -16,6 +17,15 @@ function displayTime(value) {
 function origin(url) {
   const match = /^https?:\/\/[^/]+/i.exec(url);
   return match ? match[0].toLowerCase() : '';
+}
+
+function replaceImageUrls(value) {
+  if (typeof value === 'string') return Object.prototype.hasOwnProperty.call(imageUrls, value) ?
+    imageUrls[value] : value;
+  if (value && typeof value === 'object') Object.keys(value).forEach(key => {
+    value[key] = replaceImageUrls(value[key]);
+  });
+  return value;
 }
 
 function request(url, data = {}, method = 'GET', retried = false) {
@@ -57,7 +67,7 @@ function request(url, data = {}, method = 'GET', retried = false) {
           });
           return;
         }
-        if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(own ? replaceImageUrls(res.data) : res.data);
         else reject(new Error((res.data && res.data.errmsg) || '请求失败，请稍后重试'));
       },
       fail(error) {

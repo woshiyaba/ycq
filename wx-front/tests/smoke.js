@@ -124,6 +124,39 @@ const util = require('../utils/util.js');
     });
   };
   assert.strictEqual((await util.request('https://example.org/suggestion')).data, 'external');
+  const imageUrls = require('../config/image-urls.js');
+  const oldImages = Object.keys(imageUrls);
+  assert(oldImages.length > 0, 'migrated image URLs must be recorded');
+  for (const [source, target] of Object.entries(imageUrls)) {
+    assert(['i.postimg.cc', 'img.alicdn.com', 'yanxuan.nosdn.127.net'].includes(new URL(source).hostname));
+    assert(/^https:\/\/ycq-1309114022\.cos\.ap-guangzhou\.myqcloud\.com\/images\/[\w-]+\.(png|jpg)$/.test(target));
+  }
+  const oldImage = oldImages[0], newImage = imageUrls[oldImage];
+  const originalImages = {
+    banner: [{imageUrl: oldImage}],
+    info: {primaryPicUrl: oldImage},
+    gallery: [{imgUrl: oldImage}],
+    images: oldImages,
+    local: '/static/icons/digital.svg',
+    current: newImage,
+    unknown: 'https://i.postimg.cc/not-migrated/new.png',
+    text: 'constructor',
+    empty: null,
+    count: 0,
+    selling: false
+  };
+  handler = options => options.success({
+    statusCode: 200,
+    data: {errno: 0, data: JSON.parse(JSON.stringify(originalImages))}
+  });
+  assert.deepStrictEqual(await util.api('/images'), Object.assign({}, originalImages, {
+    banner: [{imageUrl: newImage}],
+    info: {primaryPicUrl: newImage},
+    gallery: [{imgUrl: newImage}],
+    images: Object.values(imageUrls)
+  }), 'rewrite migrated images in lists, details and preview arrays only');
+  assert.deepStrictEqual((await util.request('https://example.org/images')).data, originalImages,
+    'third-party API responses must remain untouched');
   let protectedCalls = 0;
   handler = options => {
     if (options.url.endsWith('auth/loginByWeixin')) options.success({
@@ -416,7 +449,7 @@ const util = require('../utils/util.js');
   assert.strictEqual(chat.data.hasMore, true, 'an expanded same-second page can exceed 20 messages');
   websocket.wsClose();
   console.log('OK: ' + app.pages.length +
-    ' registered pages, navigation and event bindings; request/auth and WebSocket regression checks.');
+    ' registered pages, navigation and event bindings; image migration, request/auth and WebSocket regression checks.');
 })().catch(error => {
   console.error(error);
   process.exitCode = 1;
